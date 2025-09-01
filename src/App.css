@@ -1,0 +1,262 @@
+.App {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.App-header {
+  margin-bottom: 30px;
+}
+
+.App-header h1 {
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.App-header p {
+  color: #666;
+  font-size: 16px;
+}
+
+.auth-container {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 40px;
+  margin: 20px 0;
+}
+
+.auth-button {
+  background: #1db954;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.auth-button:hover {
+  background: #1ed760;
+}
+
+.playlist-creator {
+  text-align: left;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #333;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #1db954;
+}
+
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  min-height: 150px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.form-group textarea:focus {
+  outline: none;
+  border-color: #1db954;
+}
+
+.create-button {
+  background: #1db954;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.create-button:hover:not(:disabled) {
+  background: #1ed760;
+}
+
+.create-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.status {
+  margin-top: 20px;
+  padding: 10px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.status.loading {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.status.success {
+  background: #e8f5e8;
+  color: #2e7d32;
+}
+
+.status.error {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.results {
+  margin-top: 20px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  padding: 15px;
+}
+
+.results h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.results ul {
+  text-align: left;
+  margin: 10px 0;
+}
+
+.results li {
+  margin: 5px 0;
+  color: #666;
+}
+
+.platform-selector {
+  text-align: center;
+  margin: 40px 0;
+}
+
+.platform-selector h2 {
+  color: #333;
+  margin-bottom: 30px;
+  font-size: 24px;
+}
+
+.platform-buttons {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.platform-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 20px;
+  border: 2px solid #ddd;
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 200px;
+  text-decoration: none;
+}
+
+.platform-button:hover {
+  border-color: #007bff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+}
+
+.platform-button.spotify:hover {
+  border-color: #1db954;
+  box-shadow: 0 4px 12px rgba(29, 185, 84, 0.15);
+}
+
+.platform-button.youtube:hover {
+  border-color: #ff0000;
+  box-shadow: 0 4px 12px rgba(255, 0, 0, 0.15);
+}
+
+.platform-icon {
+  font-size: 36px;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.platform-button.spotify .platform-icon {
+  color: #1db954;
+}
+
+.platform-button.youtube .platform-icon {
+  color: #ff0000;
+}
+
+.platform-name {
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.platform-desc {
+  font-size: 14px;
+  color: #666;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.back-button {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-bottom: 20px;
+  transition: background-color 0.3s;
+}
+
+.back-button:hover {
+  background: #5a6268;
+}
+
+.platform-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.platform-header h2 {
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.platform-header p {
+  color: #666;
+  margin: 0;
+}
