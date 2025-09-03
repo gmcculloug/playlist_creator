@@ -16,7 +16,7 @@ A React app that creates Spotify playlists by finding songs from your "core" pla
 
 1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 2. Create a new app
-3. In your app settings, add `http://localhost:3000` as a redirect URI
+3. In your app settings, add `http://localhost:3000/spotify` as a redirect URI
 4. Copy your Client ID
 
 ### 2. Environment Configuration
@@ -31,7 +31,7 @@ A React app that creates Spotify playlists by finding songs from your "core" pla
    SPOTIFY_CLIENT_ID=your_spotify_client_id_here
    SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
    REACT_APP_SPOTIFY_CLIENT_ID=your_spotify_client_id_here
-   REACT_APP_REDIRECT_URI=http://localhost:3000
+   REACT_APP_REDIRECT_URI=http://localhost:3000/spotify
    ```
 
 ### YouTube Setup (Optional)
@@ -137,7 +137,7 @@ The app will find these songs in your core playlists even if they're stored as:
 ### Authentication redirects back to platform selection
 - Ensure the backend server is running on port 3001 (`npm run server`)
 - Check that your `.env` file contains all required Spotify environment variables
-- Verify your Spotify app's redirect URI matches `http://localhost:3000`
+- Verify your Spotify app's redirect URI matches `http://localhost:3000/spotify`
 - Check the browser console for authentication errors
 - Clear browser localStorage and try authenticating again
 

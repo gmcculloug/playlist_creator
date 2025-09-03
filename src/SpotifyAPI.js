@@ -10,6 +10,18 @@ class SpotifyAPI {
     };
   }
 
+  // Handle token expiration by clearing localStorage
+  handleTokenExpiration(error) {
+    if (error.response?.status === 401) {
+      console.log('Token expired, clearing localStorage');
+      localStorage.removeItem('spotify_access_token');
+      localStorage.removeItem('spotify_token_expiry');
+      localStorage.removeItem('selected_platform');
+      throw new Error('Authentication expired. Please log in again.');
+    }
+    throw error;
+  }
+
   async getUserProfile() {
     try {
       const response = await axios.get(`${this.baseURL}/me`, {
@@ -17,6 +29,7 @@ class SpotifyAPI {
       });
       return response.data;
     } catch (error) {
+      this.handleTokenExpiration(error);
       throw new Error('Failed to fetch user profile: ' + error.response?.data?.error?.message || error.message);
     }
   }
@@ -37,6 +50,7 @@ class SpotifyAPI {
       
       return allPlaylists;
     } catch (error) {
+      this.handleTokenExpiration(error);
       throw new Error('Failed to fetch playlists: ' + error.response?.data?.error?.message || error.message);
     }
   }
@@ -88,6 +102,21 @@ class SpotifyAPI {
       return response.data;
     } catch (error) {
       throw new Error('Failed to create playlist: ' + error.response?.data?.error?.message || error.message);
+    }
+  }
+
+  async findPlaylistByName(playlistName) {
+    try {
+      const playlists = await this.getUserPlaylists();
+      const userProfile = await this.getUserProfile();
+      
+      return playlists.find(playlist => 
+        playlist.name === playlistName && 
+        playlist.owner.id === userProfile.id
+      );
+    } catch (error) {
+      this.handleTokenExpiration(error);
+      throw new Error('Failed to search for playlist: ' + error.response?.data?.error?.message || error.message);
     }
   }
 

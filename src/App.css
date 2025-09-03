@@ -260,3 +260,137 @@
   color: #666;
   margin: 0;
 }
+
+/* Playlist dropdown styles */
+.playlist-dropdown-container {
+  position: relative;
+}
+
+.playlist-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 2px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.playlist-dropdown-item {
+  padding: 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  transition: background-color 0.2s;
+}
+
+.playlist-dropdown-item:hover {
+  background-color: #f8f9fa;
+}
+
+.playlist-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.playlist-name {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.playlist-info {
+  font-size: 12px;
+  color: #666;
+}
+
+.playlist-dropdown-more {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
+  text-align: center;
+  background-color: #f8f9fa;
+  border-bottom: none;
+}
+
+.youtube-auth-notice {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  color: #856404;
+}
+
+.youtube-auth-notice small {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* New platform selector at top */
+.platform-selector-top {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.platform-button-small {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.platform-button-small:hover {
+  border-color: #007bff;
+  background: #f8f9fa;
+}
+
+.platform-button-small.active {
+  color: white;
+}
+
+.platform-button-small.active.spotify {
+  border-color: #1db954;
+  background: #1db954;
+}
+
+.platform-button-small.active.spotify:hover {
+  background: #1ed760;
+  border-color: #1ed760;
+}
+
+.platform-button-small.active.youtube {
+  border-color: #ff0000;
+  background: #ff0000;
+}
+
+.platform-button-small.active.youtube:hover {
+  background: #e60000;
+  border-color: #e60000;
+}
+
+.platform-button-small svg {
+  width: 16px;
+  height: 16px;
+}
+
+.no-platform-selected {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-size: 16px;
+}

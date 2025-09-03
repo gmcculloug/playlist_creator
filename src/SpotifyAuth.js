@@ -1,14 +1,44 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const SpotifyAuth = ({ onAuthenticated }) => {
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [hasValidToken, setHasValidToken] = useState(false);
+  
   const CLIENT_ID = process.env.REACT_APP_SPOTIFY_CLIENT_ID || 'YOUR_SPOTIFY_CLIENT_ID';
-  const REDIRECT_URI = process.env.REACT_APP_REDIRECT_URI || window.location.origin;
+  const REDIRECT_URI = process.env.REACT_APP_REDIRECT_URI || `${window.location.origin}/spotify`;
   const SCOPES = [
     'playlist-read-private',
     'playlist-read-collaborative',
     'playlist-modify-public',
     'playlist-modify-private'
   ].join(' ');
+
+  // Function to check if Spotify token is valid
+  const isSpotifyTokenValid = (token, expiry) => {
+    if (!token || !expiry) return false;
+    const expiryTime = new Date(expiry);
+    const now = new Date();
+    // Add 5 minute buffer before expiry
+    return expiryTime.getTime() > (now.getTime() + 5 * 60 * 1000);
+  };
+
+  // Check token validity on mount and when localStorage changes
+  useEffect(() => {
+    const checkTokenValidity = () => {
+      const existingToken = localStorage.getItem('spotify_access_token');
+      const existingExpiry = localStorage.getItem('spotify_token_expiry');
+      setHasValidToken(isSpotifyTokenValid(existingToken, existingExpiry));
+    };
+
+    checkTokenValidity();
+    
+    // Listen for storage events to detect token changes
+    window.addEventListener('storage', checkTokenValidity);
+    
+    return () => {
+      window.removeEventListener('storage', checkTokenValidity);
+    };
+  }, []);
 
   // Generate code verifier and challenge for PKCE
   const generateCodeVerifier = () => {
@@ -28,6 +58,7 @@ const SpotifyAuth = ({ onAuthenticated }) => {
 
   useEffect(() => {
     const handleAuthorizationCode = async (code) => {
+      setIsAuthenticating(true);
       const codeVerifier = localStorage.getItem('code_verifier');
       
       if (!codeVerifier) {
@@ -49,18 +80,47 @@ const SpotifyAuth = ({ onAuthenticated }) => {
         });
 
         if (!response.ok) {
-          throw new Error('Failed to exchange code for token');
+          const errorData = await response.text();
+          console.error('Server response:', response.status, errorData);
+          
+          if (response.status === 404) {
+            throw new Error('Backend server not responding. Make sure to run "npm run server" in a separate terminal.');
+          } else if (response.status === 400) {
+            throw new Error('Invalid Spotify credentials. Check your .env file has correct SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET.');
+          } else {
+            throw new Error(`Server error (${response.status}): ${errorData}`);
+          }
         }
 
         const data = await response.json();
         console.log('Successfully received access token');
+        
+        // Calculate expiry time (Spotify tokens typically last 1 hour)
+        const expiryTime = new Date();
+        expiryTime.setSeconds(expiryTime.getSeconds() + (data.expires_in || 3600));
+        
+        // Save token and expiry to localStorage
+        localStorage.setItem('spotify_access_token', data.access_token);
+        localStorage.setItem('spotify_token_expiry', expiryTime.toISOString());
+        localStorage.setItem('selected_platform', 'spotify');
+        
+        // Update token validity state
+        setHasValidToken(true);
+        
         localStorage.removeItem('code_verifier');
-        window.history.replaceState({}, document.title, window.location.pathname);
+        window.history.replaceState({}, document.title, '/');
         onAuthenticated(data.access_token);
       } catch (error) {
         console.error('Error exchanging code for token:', error);
+        
+        // Show user-friendly error message
+        const errorMessage = error.message || 'Failed to complete authentication';
+        alert(`Authentication failed: ${errorMessage}\n\nPlease ensure:\n1. The backend server is running (npm run server)\n2. SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET are set in .env\n3. Redirect URI is configured in Spotify app settings`);
+        
         // Reset URL on error to remove the code parameter
-        window.history.replaceState({}, document.title, window.location.pathname);
+        window.history.replaceState({}, document.title, '/');
+      } finally {
+        setIsAuthenticating(false);
       }
     };
 
@@ -88,6 +148,26 @@ const SpotifyAuth = ({ onAuthenticated }) => {
     
     window.location.href = authUrl;
   };
+
+  if (isAuthenticating) {
+    return (
+      <div className="auth-container">
+        <h2>Authenticating with Spotify...</h2>
+        <p>Please wait while we complete your authentication.</p>
+        <div style={{ padding: '20px', fontSize: '18px' }}>⏳ Processing...</div>
+      </div>
+    );
+  }
+
+  if (hasValidToken) {
+    return (
+      <div className="auth-container">
+        <h2>Already Connected to Spotify</h2>
+        <p>You are already authenticated with Spotify and ready to create playlists.</p>
+        <div style={{ padding: '20px', fontSize: '16px', color: '#1db954' }}>✓ Connected</div>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-container">

@@ -273,17 +273,29 @@ class YouTubeAPI {
           description: item.snippet.description,
           itemCount: item.contentDetails.itemCount,
           thumbnail: item.snippet.thumbnails?.medium?.url,
-          publishedAt: item.snippet.publishedAt
+          publishedAt: item.snippet.publishedAt,
+          modifiedAt: item.snippet.publishedAt // YouTube doesn't provide lastModified, use publishedAt
         }));
 
         allPlaylists = allPlaylists.concat(playlists);
         nextPageToken = data.nextPageToken || '';
       } while (nextPageToken);
 
-      return allPlaylists;
+      // Sort playlists by most recently published (YouTube doesn't provide lastModified)
+      return allPlaylists.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
     } catch (error) {
       console.error('YouTube user playlists error:', error);
       throw new Error('Failed to fetch user playlists: ' + error.message);
+    }
+  }
+
+  async findPlaylistByName(playlistName) {
+    try {
+      const playlists = await this.getUserPlaylists();
+      return playlists.find(playlist => playlist.name === playlistName);
+    } catch (error) {
+      console.error('Error finding playlist by name:', error);
+      throw new Error('Failed to search for playlist: ' + error.message);
     }
   }
 
