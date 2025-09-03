@@ -3,10 +3,27 @@ class YouTubeAPI {
     this.baseURL = 'https://www.googleapis.com/youtube/v3';
     this.tokenData = null;
     this.accessToken = null;
-    this.loadToken();
+    this.tokenLoadPromise = null;
   }
 
   async loadToken() {
+    // If already loading, return the existing promise
+    if (this.tokenLoadPromise) {
+      return this.tokenLoadPromise;
+    }
+
+    // Create a new promise for loading/refreshing the token
+    this.tokenLoadPromise = this._loadTokenInternal();
+    
+    try {
+      await this.tokenLoadPromise;
+    } finally {
+      // Clear the promise so subsequent calls can try again
+      this.tokenLoadPromise = null;
+    }
+  }
+
+  async _loadTokenInternal() {
     try {
       const response = await fetch('/token.json');
       if (response.ok) {
@@ -188,6 +205,9 @@ class YouTubeAPI {
       console.log('YouTube API request:', `${this.baseURL}/search?${searchParams}`);
       console.log('Headers:', headers);
 
+      console.log('YouTube API request:', `${this.baseURL}/search?${searchParams}`);
+      console.log('Headers:', headers);
+
       const response = await fetch(`${this.baseURL}/search?${searchParams}`, { headers });
       
       if (!response.ok) {
@@ -237,6 +257,9 @@ class YouTubeAPI {
 
   async getUserPlaylists() {
     try {
+      // Ensure token is loaded and refreshed if needed
+      await this.loadToken();
+      
       let allPlaylists = [];
       let nextPageToken = '';
 
@@ -291,6 +314,8 @@ class YouTubeAPI {
 
   async findPlaylistByName(playlistName) {
     try {
+      // Ensure token is loaded and refreshed if needed
+      await this.loadToken();
       const playlists = await this.getUserPlaylists();
       return playlists.find(playlist => playlist.name === playlistName);
     } catch (error) {
@@ -301,6 +326,9 @@ class YouTubeAPI {
 
   async createPlaylist(title, description = 'Created with Playlist Creator') {
     try {
+      // Ensure token is loaded and refreshed if needed
+      await this.loadToken();
+      
       const headers = {
         'Content-Type': 'application/json'
       };
@@ -345,6 +373,9 @@ class YouTubeAPI {
 
   async addVideosToPlaylist(playlistId, videoIds) {
     try {
+      // Ensure token is loaded and refreshed if needed
+      await this.loadToken();
+      
       const headers = {
         'Content-Type': 'application/json'
       };

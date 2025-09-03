@@ -16,6 +16,11 @@ function App() {
     return expiryTime.getTime() > (now.getTime() + 5 * 60 * 1000);
   };
 
+  const clearSpotifyTokens = () => {
+    localStorage.removeItem('spotify_access_token');
+    localStorage.removeItem('spotify_token_expiry');
+  };
+
   // Restore state from localStorage on mount
   useEffect(() => {
     // Check if this is a Spotify callback
@@ -29,16 +34,26 @@ function App() {
     const savedExpiry = localStorage.getItem('spotify_token_expiry');
     const savedPlatform = localStorage.getItem('selected_platform');
     
-    if (savedPlatform && savedToken && savedExpiry) {
-      if (isSpotifyTokenValid(savedToken, savedExpiry)) {
-        console.log('Restoring valid saved token:', { platform: savedPlatform, expiry: savedExpiry });
-        setAccessToken(savedToken);
-        setSelectedPlatform(savedPlatform);
-      } else {
-        console.log('Saved token expired, clearing localStorage');
-        localStorage.removeItem('spotify_access_token');
-        localStorage.removeItem('spotify_token_expiry');
-        localStorage.removeItem('selected_platform');
+    if (savedPlatform) {
+      setSelectedPlatform(savedPlatform);
+      
+      if (savedPlatform === 'youtube') {
+        // For YouTube, just set the token mode
+        setAccessToken('youtube-mode');
+      } else if (savedPlatform === 'spotify' && savedToken && savedExpiry) {
+        // Make sure we don't have YouTube token in Spotify storage
+        if (savedToken === 'youtube-mode') {
+          console.log('Found YouTube token in Spotify storage, clearing');
+          clearSpotifyTokens();
+          setAccessToken(null);
+        } else if (isSpotifyTokenValid(savedToken, savedExpiry)) {
+          console.log('Restoring valid saved Spotify token:', { expiry: savedExpiry });
+          setAccessToken(savedToken);
+        } else {
+          console.log('Saved Spotify token expired, clearing localStorage');
+          clearSpotifyTokens();
+          setAccessToken(null);
+        }
       }
     }
   }, []);
@@ -47,20 +62,29 @@ function App() {
     console.log('Platform selected:', platform);
     setSelectedPlatform(platform);
     localStorage.setItem('selected_platform', platform);
+    
     if (platform === 'youtube') {
+      // Clear any Spotify tokens when switching to YouTube
+      clearSpotifyTokens();
       const youtubeToken = 'youtube-mode';
       setAccessToken(youtubeToken);
-      localStorage.setItem('spotify_access_token', youtubeToken);
     } else if (platform === 'spotify') {
       // Check if user already has valid Spotify token
       const savedToken = localStorage.getItem('spotify_access_token');
       const savedExpiry = localStorage.getItem('spotify_token_expiry');
       console.log('Checking Spotify token:', { token: savedToken ? 'EXISTS' : 'NONE', expiry: savedExpiry });
-      if (isSpotifyTokenValid(savedToken, savedExpiry)) {
+      
+      // Make sure we're not confusing YouTube tokens with Spotify tokens
+      if (savedToken === 'youtube-mode') {
+        console.log('Found YouTube token in Spotify storage, clearing for fresh auth');
+        clearSpotifyTokens();
+        setAccessToken(null);
+      } else if (isSpotifyTokenValid(savedToken, savedExpiry)) {
         console.log('Using existing valid Spotify token');
         setAccessToken(savedToken);
       } else {
         console.log('No valid Spotify token found, will show auth');
+        clearSpotifyTokens();
         setAccessToken(null);
       }
     }
@@ -101,18 +125,30 @@ function App() {
       </header>
       
       <main>
-        {selectedPlatform === 'spotify' && !accessToken ? (
-          <SpotifyAuth onAuthenticated={handleSpotifyAuthenticated} />
-        ) : selectedPlatform ? (
-          <PlaylistCreator 
-            accessToken={accessToken} 
-            platform={selectedPlatform}
-          />
-        ) : (
-          <div className="no-platform-selected">
-            <p>Select a platform above to get started</p>
-          </div>
-        )}
+        {(() => {
+          console.log('Render decision:', { 
+            selectedPlatform, 
+            accessToken: accessToken ? 'EXISTS' : 'NULL',
+            showSpotifyAuth: selectedPlatform === 'spotify' && !accessToken
+          });
+          
+          if (selectedPlatform === 'spotify' && !accessToken) {
+            return <SpotifyAuth onAuthenticated={handleSpotifyAuthenticated} />;
+          } else if (selectedPlatform) {
+            return (
+              <PlaylistCreator 
+                accessToken={accessToken} 
+                platform={selectedPlatform}
+              />
+            );
+          } else {
+            return (
+              <div className="no-platform-selected">
+                <p>Select a platform above to get started</p>
+              </div>
+            );
+          }
+        })()}
       </main>
     </div>
   );

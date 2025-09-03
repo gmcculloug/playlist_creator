@@ -12,8 +12,6 @@ const PlaylistCreator = ({ accessToken, platform }) => {
   const [userPlaylists, setUserPlaylists] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  const spotifyAPI = platform === 'spotify' ? new SpotifyAPI(accessToken) : null;
-  const youtubeAPI = platform === 'youtube' ? new YouTubeAPI() : null;
   const fuzzyMatcher = new FuzzyMatcher();
 
   // Fetch user's playlists on component mount
@@ -22,7 +20,8 @@ const PlaylistCreator = ({ accessToken, platform }) => {
       try {
         let playlists = [];
         
-        if (platform === 'spotify' && spotifyAPI) {
+        if (platform === 'spotify') {
+          const spotifyAPI = new SpotifyAPI(accessToken);
           const allPlaylists = await spotifyAPI.getUserPlaylists();
           const userProfile = await spotifyAPI.getUserProfile();
           
@@ -30,7 +29,8 @@ const PlaylistCreator = ({ accessToken, platform }) => {
           playlists = allPlaylists.filter(playlist => 
             playlist.owner.id === userProfile.id
           );
-        } else if (platform === 'youtube' && youtubeAPI) {
+        } else if (platform === 'youtube') {
+          const youtubeAPI = new YouTubeAPI();
           // Wait for YouTube API to load token, then fetch playlists
           await youtubeAPI.loadToken();
           
@@ -54,7 +54,7 @@ const PlaylistCreator = ({ accessToken, platform }) => {
     };
 
     fetchUserPlaylists();
-  }, [platform, spotifyAPI, youtubeAPI, accessToken]);
+  }, [platform, accessToken]);
 
   // Handle playlist name input change
   const handlePlaylistNameChange = (value) => {
@@ -94,6 +94,7 @@ const PlaylistCreator = ({ accessToken, platform }) => {
       let allCoreSongs = [];
 
       if (platform === 'spotify') {
+        const spotifyAPI = new SpotifyAPI(accessToken);
         setStatus('Fetching your Spotify playlists...');
         const userPlaylists = await spotifyAPI.getUserPlaylists();
         const userProfile = await spotifyAPI.getUserProfile();
@@ -116,6 +117,7 @@ const PlaylistCreator = ({ accessToken, platform }) => {
           allCoreSongs = allCoreSongs.concat(playlistTracks);
         }
       } else if (platform === 'youtube') {
+        const youtubeAPI = new YouTubeAPI();
         setStatus('Fetching your YouTube playlists...');
         const userPlaylists = await youtubeAPI.getUserPlaylists();
         
@@ -177,6 +179,7 @@ const PlaylistCreator = ({ accessToken, platform }) => {
       }
 
       if (platform === 'spotify') {
+        const spotifyAPI = new SpotifyAPI(accessToken);
         // Check if playlist already exists
         setStatus('Checking for existing playlist...');
         const existingPlaylist = await spotifyAPI.findPlaylistByName(playlistName);
@@ -240,6 +243,7 @@ const PlaylistCreator = ({ accessToken, platform }) => {
           isUpdate
         });
       } else if (platform === 'youtube') {
+        const youtubeAPI = new YouTubeAPI();
         // Check if playlist already exists
         setStatus('Checking for existing playlist...');
         const existingPlaylist = await youtubeAPI.findPlaylistByName(playlistName);
@@ -336,7 +340,6 @@ const PlaylistCreator = ({ accessToken, platform }) => {
             disabled={isLoading}
             autoComplete="off"
           />
-          {console.log('Dropdown debug:', { showDropdown, filteredPlaylistsLength: filteredPlaylists.length, userPlaylistsLength: userPlaylists.length, playlistName }) || ''}
           {showDropdown && filteredPlaylists.length > 0 && (
             <div className="playlist-dropdown">
               {filteredPlaylists.slice(0, 10).map((playlist) => (
@@ -361,7 +364,7 @@ const PlaylistCreator = ({ accessToken, platform }) => {
               )}
             </div>
           )}
-          {platform === 'youtube' && userPlaylists.length === 0 && (!youtubeAPI?.accessToken || youtubeAPI.accessToken === 'youtube-mode') && (
+          {platform === 'youtube' && userPlaylists.length === 0 && (
             <div className="youtube-auth-notice">
               <small>To see your existing YouTube playlists, configure YouTube OAuth authentication. See README for setup instructions.</small>
             </div>
