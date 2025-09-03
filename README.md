@@ -1,14 +1,18 @@
-# Spotify Playlist Creator
+# Playlist Creator
 
-A React app that creates Spotify playlists by finding songs from your "core" playlists using fuzzy matching.
+A React app that creates playlists on both Spotify and YouTube by finding songs/videos from your "core" playlists using fuzzy matching.
 
 ## Features
 
-- **Spotify Authentication**: Secure OAuth2 authentication with Spotify
+- **Multi-Platform Support**: Works with both Spotify and YouTube
+- **Spotify Authentication**: Secure OAuth2 authentication with PKCE
+- **YouTube Authentication**: OAuth2 with automatic token refresh
 - **Core Playlist Detection**: Automatically finds playlists with "core" in the name (case-insensitive)
-- **Fuzzy Matching**: Uses intelligent fuzzy matching to find songs even with slight spelling differences
+- **Fuzzy Matching**: Uses intelligent fuzzy matching to find songs/videos even with slight spelling differences
 - **Batch Processing**: Handles multiple songs at once
+- **Platform Selection**: Easy switching between Spotify and YouTube
 - **Real-time Feedback**: Shows progress and results of the playlist creation process
+- **Existing Playlist Updates**: Can add to existing playlists or create new ones
 
 ## Setup
 
@@ -34,23 +38,35 @@ A React app that creates Spotify playlists by finding songs from your "core" pla
    REACT_APP_REDIRECT_URI=http://localhost:3000/spotify
    ```
 
-### YouTube Setup (Optional)
+### 3. YouTube Setup (Optional)
 
-If you want to use the YouTube playlist feature, you'll also need to configure YouTube API access:
+If you want to use the YouTube playlist feature, you'll need to configure YouTube API access:
 
-1. **Environment Variables**: Add these to your `.env` file:
+#### Google Cloud Console Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable the YouTube Data API v3
+4. Go to "Credentials" and create:
+   - **OAuth 2.0 client ID** (Application type: Desktop application)
+   - Download the credentials JSON file
+
+#### Credential Files
+
+1. **Credentials File**: Save the downloaded OAuth credentials as `credentials.json` in the root directory:
+   ```json
+   {
+     "installed": {
+       "client_id": "your_client_id.apps.googleusercontent.com",
+       "client_secret": "your_client_secret",
+       "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+       "token_uri": "https://oauth2.googleapis.com/token",
+       "redirect_uris": ["http://localhost"]
+     }
+   }
    ```
-   REACT_APP_YOUTUBE_API_KEY=your_youtube_api_key_here
-   REACT_APP_YOUTUBE_ACCESS_TOKEN=your_youtube_oauth_access_token_here
-   ```
 
-2. **Google Cloud Console Setup**:
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a new project or select an existing one
-   - Enable the YouTube Data API v3
-   - Create credentials (API key and OAuth 2.0 client)
-
-3. **Token File**: Create a `token.json` file in the root directory with your YouTube OAuth credentials:
+2. **Token File**: Create an initial `token.json` file in the root directory:
    ```json
    {
      "token": "your_access_token",
@@ -62,7 +78,14 @@ If you want to use the YouTube playlist feature, you'll also need to configure Y
    }
    ```
 
-### 3. Installation and Running
+3. **Public Token**: Copy `token.json` to `public/token.json` for frontend access:
+   ```bash
+   cp token.json public/token.json
+   ```
+
+**Note**: The app will automatically refresh expired YouTube tokens using the refresh token.
+
+### 4. Installation and Running
 
 ```bash
 # Install dependencies
@@ -82,17 +105,20 @@ The app will be available at `http://localhost:3000`.
 
 ## Usage
 
-1. **Authentication**: Click "Connect with Spotify" to authenticate
-2. **Enter Playlist Name**: Type the name for your new playlist
-3. **Add Songs**: Enter song names, one per line, in the text area
-4. **Create Playlist**: Click "Create Playlist" to start the process
+1. **Platform Selection**: Choose between Spotify or YouTube at the top of the app
+2. **Authentication**: 
+   - **Spotify**: Click "Connect with Spotify" to authenticate with your Spotify account
+   - **YouTube**: Authentication happens automatically using the token files
+3. **Enter Playlist Name**: Type the name for your new playlist (or select an existing one from the dropdown)
+4. **Add Songs**: Enter song/video names, one per line, in the text area
+5. **Create Playlist**: Click "Create Playlist" to start the process
 
 The app will:
 - Find all your playlists containing "core" in the name
-- Extract all songs from those playlists
-- Use fuzzy matching to find the best matches for your input songs
-- Create a new playlist with the matched songs
-- Show you the results with matched and unmatched songs
+- Extract all songs/videos from those playlists
+- Use fuzzy matching to find the best matches for your input songs/videos
+- Create a new playlist or update an existing one with the matched items
+- Show you the results with matched and unmatched items
 
 ## How Fuzzy Matching Works
 
@@ -141,12 +167,29 @@ The app will find these songs in your core playlists even if they're stored as:
 - Check the browser console for authentication errors
 - Clear browser localStorage and try authenticating again
 
+### YouTube "401 Unauthorized" errors
+- Check that `token.json` exists in both root directory and `public/` folder
+- Verify your YouTube token hasn't expired (check the `expiry` field)
+- Ensure `credentials.json` contains valid OAuth client credentials
+- Try refreshing the token manually: `curl -X POST http://localhost:3001/api/youtube/refresh`
+- Check that the backend server is running to handle token refresh
+
+### Platform switching issues
+- Clear browser localStorage if switching between platforms shows wrong auth state
+- Restart the app after changing platforms if authentication seems stuck
+- Check console logs for "Platform selected" and "Render decision" messages
+
+### API call loops or repeated requests
+- This was fixed in recent updates - if you see repeated API calls, refresh the page
+- Check console for "Spotify API Call" or "YouTube API Call" messages repeating rapidly
+
 ## Technical Details
 
 ### Dependencies
 - **React**: Frontend framework
 - **Fuse.js**: Fuzzy string matching
-- **Axios**: HTTP requests to Spotify API
+- **Axios**: HTTP requests for backend and API calls
+- **Express**: Backend server for OAuth token handling
 
 ### Spotify API Scopes
 - `playlist-read-private`: Read private playlists
@@ -157,16 +200,20 @@ The app will find these songs in your core playlists even if they're stored as:
 ### File Structure
 ```
 ├── server.js           # Backend Express server for OAuth token exchange
+├── credentials.json    # YouTube OAuth credentials (for YouTube setup)
+├── token.json          # YouTube access/refresh tokens (for YouTube setup)
 ├── .env                # Environment variables (create from .env.example)
 ├── .env.example        # Template for environment variables
-├── token.json          # YouTube OAuth credentials (optional)
 ├── package.json        # Dependencies and scripts
+├── public/
+│   └── token.json      # Copy of YouTube tokens for frontend access
 └── src/
-    ├── App.js              # Main app component
+    ├── App.js              # Main app component with platform selection
     ├── App.css             # Styling
-    ├── SpotifyAuth.js      # Spotify authentication
-    ├── PlaylistCreator.js  # Main playlist creation logic
+    ├── SpotifyAuth.js      # Spotify authentication component
+    ├── PlaylistCreator.js  # Main playlist creation logic (multi-platform)
     ├── SpotifyAPI.js       # Spotify API wrapper
+    ├── YouTubeAPI.js       # YouTube API wrapper with token refresh
     ├── FuzzyMatcher.js     # Fuzzy matching logic
     └── index.js           # App entry point
 ```
