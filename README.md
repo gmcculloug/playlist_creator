@@ -32,7 +32,6 @@ A React app that creates playlists on both Spotify and YouTube by finding songs/
 
 2. Edit `.env` and add your Spotify credentials:
    ```
-   SPOTIFY_CLIENT_ID=your_spotify_client_id_here
    SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
    REACT_APP_SPOTIFY_CLIENT_ID=your_spotify_client_id_here
    REACT_APP_REDIRECT_URI=http://localhost:3000/spotify
@@ -40,7 +39,7 @@ A React app that creates playlists on both Spotify and YouTube by finding songs/
 
 ### 3. YouTube Setup (Optional)
 
-If you want to use the YouTube playlist feature, you'll need to configure YouTube API access:
+If you want to use the YouTube playlist feature, you only need to configure Google Cloud credentials:
 
 #### Google Cloud Console Setup
 
@@ -51,39 +50,22 @@ If you want to use the YouTube playlist feature, you'll need to configure YouTub
    - **OAuth 2.0 client ID** (Application type: Desktop application)
    - Download the credentials JSON file
 
-#### Credential Files
+#### Setup File
 
-1. **Credentials File**: Save the downloaded OAuth credentials as `credentials.json` in the root directory:
-   ```json
-   {
-     "installed": {
-       "client_id": "your_client_id.apps.googleusercontent.com",
-       "client_secret": "your_client_secret",
-       "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-       "token_uri": "https://oauth2.googleapis.com/token",
-       "redirect_uris": ["http://localhost"]
-     }
-   }
-   ```
+**Credentials File**: Save the downloaded OAuth credentials as `credentials.json` in the root directory:
+```json
+{
+  "installed": {
+    "client_id": "your_client_id.apps.googleusercontent.com",
+    "client_secret": "your_client_secret",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "redirect_uris": ["http://localhost"]
+  }
+}
+```
 
-2. **Token File**: Create an initial `token.json` file in the root directory:
-   ```json
-   {
-     "token": "your_access_token",
-     "refresh_token": "your_refresh_token",
-     "token_uri": "https://oauth2.googleapis.com/token",
-     "client_id": "your_client_id",
-     "client_secret": "your_client_secret",
-     "expiry": "2024-01-01T00:00:00.000Z"
-   }
-   ```
-
-3. **Public Token**: Copy `token.json` to `public/token.json` for frontend access:
-   ```bash
-   cp token.json public/token.json
-   ```
-
-**Note**: The app will automatically refresh expired YouTube tokens using the refresh token.
+**That's it!** The app will automatically handle the OAuth flow when you select YouTube and click "Connect with YouTube". The `token.json` file will be created automatically in the root directory and tokens will be refreshed as needed.
 
 ### 4. Installation and Running
 
@@ -108,7 +90,7 @@ The app will be available at `http://localhost:3000`.
 1. **Platform Selection**: Choose between Spotify or YouTube at the top of the app
 2. **Authentication**: 
    - **Spotify**: Click "Connect with Spotify" to authenticate with your Spotify account
-   - **YouTube**: Authentication happens automatically using the token files
+   - **YouTube**: Click "Connect with YouTube" to authenticate with your Google account
 3. **Enter Playlist Name**: Type the name for your new playlist (or select an existing one from the dropdown)
 4. **Add Songs**: Enter song/video names, one per line, in the text area
 5. **Create Playlist**: Click "Create Playlist" to start the process
@@ -162,13 +144,13 @@ The app will find these songs in your core playlists even if they're stored as:
 
 ### Authentication redirects back to platform selection
 - Ensure the backend server is running on port 3001 (`npm run server`)
-- Check that your `.env` file contains all required Spotify environment variables
+- Check that your `.env` file contains `REACT_APP_SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`
 - Verify your Spotify app's redirect URI matches `http://localhost:3000/spotify`
 - Check the browser console for authentication errors
 - Clear browser localStorage and try authenticating again
 
 ### YouTube "401 Unauthorized" errors
-- Check that `token.json` exists in both root directory and `public/` folder
+- Check that `token.json` exists in the root directory
 - Verify your YouTube token hasn't expired (check the `expiry` field)
 - Ensure `credentials.json` contains valid OAuth client credentials
 - Try refreshing the token manually: `curl -X POST http://localhost:3001/api/youtube/refresh`
@@ -200,17 +182,16 @@ The app will find these songs in your core playlists even if they're stored as:
 ### File Structure
 ```
 ├── server.js           # Backend Express server for OAuth token exchange
-├── credentials.json    # YouTube OAuth credentials (for YouTube setup)
-├── token.json          # YouTube access/refresh tokens (for YouTube setup)
+├── credentials.json    # YouTube OAuth credentials (optional, for YouTube)
+├── token.json          # YouTube access/refresh tokens (auto-generated)
 ├── .env                # Environment variables (create from .env.example)
 ├── .env.example        # Template for environment variables
 ├── package.json        # Dependencies and scripts
-├── public/
-│   └── token.json      # Copy of YouTube tokens for frontend access
 └── src/
     ├── App.js              # Main app component with platform selection
     ├── App.css             # Styling
     ├── SpotifyAuth.js      # Spotify authentication component
+    ├── YouTubeAuth.js      # YouTube authentication component
     ├── PlaylistCreator.js  # Main playlist creation logic (multi-platform)
     ├── SpotifyAPI.js       # Spotify API wrapper
     ├── YouTubeAPI.js       # YouTube API wrapper with token refresh

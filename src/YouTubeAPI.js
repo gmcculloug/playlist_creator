@@ -25,22 +25,28 @@ class YouTubeAPI {
 
   async _loadTokenInternal() {
     try {
-      const response = await fetch('/token.json');
+      // Get token from backend API instead of reading files
+      const response = await fetch('http://localhost:3001/api/youtube/token');
       if (response.ok) {
         const tokenData = await response.json();
-        this.tokenData = tokenData;
-        this.accessToken = tokenData.token;
+        this.accessToken = tokenData.access_token;
         
-        if (this.isTokenExpired()) {
-          console.log('Token expired, attempting refresh...');
-          await this.refreshToken();
-        }
+        // Set a simple expiry based on expires_in
+        const expiryTime = new Date();
+        expiryTime.setSeconds(expiryTime.getSeconds() + tokenData.expires_in);
+        this.tokenData = {
+          expiry: expiryTime.toISOString()
+        };
+      } else if (response.status === 401) {
+        // Token expired, try to refresh
+        console.log('Token expired, attempting refresh...');
+        await this.refreshToken();
       } else {
-        console.warn('Could not load token.json, falling back to environment variables');
+        console.warn('Could not get YouTube token from backend');
         this.accessToken = process.env.REACT_APP_YOUTUBE_ACCESS_TOKEN;
       }
     } catch (error) {
-      console.warn('Error loading token.json:', error);
+      console.warn('Error loading YouTube token from backend:', error);
       this.accessToken = process.env.REACT_APP_YOUTUBE_ACCESS_TOKEN;
     }
   }
@@ -63,7 +69,7 @@ class YouTubeAPI {
     }
 
     try {
-      const response = await fetch('/api/youtube/refresh', {
+      const response = await fetch('http://localhost:3001/api/youtube/refresh', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -78,12 +84,13 @@ class YouTubeAPI {
       const newTokenData = await response.json();
       this.accessToken = newTokenData.access_token;
       
-      // Update token data with new access token and expiry
-      this.tokenData.token = newTokenData.access_token;
+      // Update token data with new expiry
       if (newTokenData.expires_in) {
         const expiryDate = new Date();
         expiryDate.setSeconds(expiryDate.getSeconds() + newTokenData.expires_in);
-        this.tokenData.expiry = expiryDate.toISOString();
+        this.tokenData = {
+          expiry: expiryDate.toISOString()
+        };
       }
       
       return newTokenData;

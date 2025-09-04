@@ -388,6 +388,24 @@
   height: 16px;
 }
 
+.platform-button-small.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f5f5f5;
+  color: #999;
+  border-color: #ddd;
+}
+
+.platform-button-small.disabled:hover {
+  border-color: #ddd;
+  background: #f5f5f5;
+  transform: none;
+}
+
+.platform-button-small.disabled svg {
+  opacity: 0.5;
+}
+
 .no-platform-selected {
   text-align: center;
   padding: 40px;

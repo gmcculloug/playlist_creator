@@ -76,6 +76,7 @@ const SpotifyAuth = ({ onAuthenticated }) => {
             code: code,
             codeVerifier: codeVerifier,
             redirectUri: REDIRECT_URI,
+            clientId: CLIENT_ID,
           }),
         });
 
@@ -86,7 +87,7 @@ const SpotifyAuth = ({ onAuthenticated }) => {
           if (response.status === 404) {
             throw new Error('Backend server not responding. Make sure to run "npm run server" in a separate terminal.');
           } else if (response.status === 400) {
-            throw new Error('Invalid Spotify credentials. Check your .env file has correct SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET.');
+            throw new Error('Invalid Spotify credentials. Check your .env file has correct REACT_APP_SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET.');
           } else {
             throw new Error(`Server error (${response.status}): ${errorData}`);
           }
@@ -115,7 +116,7 @@ const SpotifyAuth = ({ onAuthenticated }) => {
         
         // Show user-friendly error message
         const errorMessage = error.message || 'Failed to complete authentication';
-        alert(`Authentication failed: ${errorMessage}\n\nPlease ensure:\n1. The backend server is running (npm run server)\n2. SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET are set in .env\n3. Redirect URI is configured in Spotify app settings`);
+        alert(`Authentication failed: ${errorMessage}\n\nPlease ensure:\n1. The backend server is running (npm run server)\n2. REACT_APP_SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET are set in .env\n3. Redirect URI is configured in Spotify app settings`);
         
         // Reset URL on error to remove the code parameter
         window.history.replaceState({}, document.title, '/');
@@ -128,6 +129,8 @@ const SpotifyAuth = ({ onAuthenticated }) => {
     const code = urlParams.get('code');
     
     if (code) {
+      // Remove the code from URL immediately to prevent reuse
+      window.history.replaceState({}, document.title, '/');
       handleAuthorizationCode(code);
     }
   }, [onAuthenticated, REDIRECT_URI]);

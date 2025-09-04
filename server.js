@@ -64,13 +64,9 @@ const refreshYouTubeToken = async (token) => {
       expiry: new Date(Date.now() + response.data.expires_in * 1000).toISOString()
     };
 
-    // Save updated token to file
+    // Save updated token to root directory only
     const tokenPath = path.join(__dirname, 'token.json');
     fs.writeFileSync(tokenPath, JSON.stringify(updatedToken, null, 2));
-    
-    // Also update the public version
-    const publicTokenPath = path.join(__dirname, 'public', 'token.json');
-    fs.writeFileSync(publicTokenPath, JSON.stringify(updatedToken, null, 2));
 
     return updatedToken;
   } catch (error) {
@@ -110,7 +106,7 @@ const loadYouTubeToken = async () => {
 loadYouTubeToken();
 
 app.post('/api/spotify/token', async (req, res) => {
-  const { code, codeVerifier, redirectUri } = req.body;
+  const { code, codeVerifier, redirectUri, clientId } = req.body;
 
   try {
     const response = await axios.post('https://accounts.spotify.com/api/token', 
@@ -118,7 +114,7 @@ app.post('/api/spotify/token', async (req, res) => {
         grant_type: 'authorization_code',
         code: code,
         redirect_uri: redirectUri,
-        client_id: process.env.SPOTIFY_CLIENT_ID,
+        client_id: clientId,
         client_secret: process.env.SPOTIFY_CLIENT_SECRET,
         code_verifier: codeVerifier,
       }), 
@@ -136,6 +132,90 @@ app.post('/api/spotify/token', async (req, res) => {
       error: 'Failed to exchange code for token',
       details: error.response?.data || error.message 
     });
+  }
+});
+
+// YouTube OAuth authorization URL
+app.get('/api/youtube/auth-url', (req, res) => {
+  if (!youtubeCredentials) {
+    return res.status(400).json({
+      error: 'YouTube credentials not available',
+      details: 'credentials.json file not found'
+    });
+  }
+
+  const credentials = youtubeCredentials.installed;
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+    `client_id=${credentials.client_id}&` +
+    `redirect_uri=${encodeURIComponent('http://localhost:3001/api/youtube/callback')}&` +
+    `scope=${encodeURIComponent('https://www.googleapis.com/auth/youtube https://www.googleapis.com/auth/youtube.force-ssl')}&` +
+    `response_type=code&` +
+    `access_type=offline&` +
+    `prompt=consent`;
+
+  res.json({ authUrl });
+});
+
+// YouTube OAuth callback
+app.get('/api/youtube/callback', async (req, res) => {
+  const { code } = req.query;
+
+  if (!code) {
+    return res.status(400).send('Authorization code not provided');
+  }
+
+  if (!youtubeCredentials) {
+    return res.status(400).send('YouTube credentials not available');
+  }
+
+  try {
+    const credentials = youtubeCredentials.installed;
+    
+    const response = await axios.post('https://oauth2.googleapis.com/token', 
+      new URLSearchParams({
+        code: code,
+        client_id: credentials.client_id,
+        client_secret: credentials.client_secret,
+        redirect_uri: 'http://localhost:3001/api/youtube/callback',
+        grant_type: 'authorization_code'
+      }), 
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      }
+    );
+
+    // Create token object
+    const tokenData = {
+      token: response.data.access_token,
+      refresh_token: response.data.refresh_token,
+      token_uri: 'https://oauth2.googleapis.com/token',
+      client_id: credentials.client_id,
+      client_secret: credentials.client_secret,
+      scopes: [
+        'https://www.googleapis.com/auth/youtube',
+        'https://www.googleapis.com/auth/youtube.force-ssl'
+      ],
+      universe_domain: 'googleapis.com',
+      account: '',
+      expiry: new Date(Date.now() + response.data.expires_in * 1000).toISOString()
+    };
+
+    // Save token to root directory only
+    const tokenPath = path.join(__dirname, 'token.json');
+    fs.writeFileSync(tokenPath, JSON.stringify(tokenData, null, 2));
+    
+    // Update in-memory token
+    youtubeToken = tokenData;
+
+    console.log('YouTube OAuth successful, token saved');
+    
+    // Redirect back to frontend
+    res.redirect('http://localhost:3000?youtube_auth=success');
+  } catch (error) {
+    console.error('YouTube OAuth error:', error.response?.data || error.message);
+    res.redirect('http://localhost:3000?youtube_auth=error');
   }
 });
 
@@ -174,6 +254,37 @@ app.get('/api/youtube/token/status', (req, res) => {
     valid,
     expiry: youtubeToken.expiry,
     reason: valid ? 'Token is valid' : 'Token is expired'
+  });
+});
+
+// YouTube configuration status endpoint
+app.get('/api/youtube/config/status', (req, res) => {
+  const configured = youtubeCredentials !== null;
+  res.json({ 
+    configured,
+    reason: configured ? 'credentials.json loaded successfully' : 'credentials.json not found or invalid'
+  });
+});
+
+// Add an endpoint to get current access token (for authenticated requests)
+app.get('/api/youtube/token', (req, res) => {
+  if (!youtubeToken) {
+    return res.status(400).json({ 
+      error: 'No YouTube token available',
+      details: 'Authentication required' 
+    });
+  }
+
+  if (!isTokenValid(youtubeToken)) {
+    return res.status(401).json({ 
+      error: 'Token expired',
+      details: 'Token refresh needed' 
+    });
+  }
+
+  res.json({ 
+    access_token: youtubeToken.token,
+    expires_in: Math.floor((new Date(youtubeToken.expiry) - new Date()) / 1000)
   });
 });
 
