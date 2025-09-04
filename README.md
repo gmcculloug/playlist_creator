@@ -2,6 +2,8 @@
 
 A React app that creates playlists on both Spotify and YouTube by finding songs/videos from your "core" playlists using fuzzy matching.
 
+![alt text](<images/screenshot 1.png>)
+
 ## Features
 
 - **Multi-Platform Support**: Works with both Spotify and YouTube
