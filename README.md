@@ -9,14 +9,53 @@ A React app that creates playlists on both Spotify and YouTube by finding songs/
 - **YouTube Authentication**: OAuth2 with automatic token refresh
 - **Core Playlist Detection**: Automatically finds playlists with "core" in the name (case-insensitive)
 - **Fuzzy Matching**: Uses intelligent fuzzy matching to find songs/videos even with slight spelling differences
-- **Batch Processing**: Handles multiple songs at once
-- **Platform Selection**: Easy switching between Spotify and YouTube
 - **Real-time Feedback**: Shows progress and results of the playlist creation process
 - **Existing Playlist Updates**: Can add to existing playlists or create new ones
 
 ## Setup
 
-### 1. Spotify App Configuration
+### 1. Prerequisites - Install Node.js and npm
+
+Before you can run this application, you need to have Node.js and npm installed on your system.
+
+#### Mac
+
+**Option 1: Using Homebrew (Recommended)**
+```bash
+# Install Homebrew if you don't have it
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install Node.js (includes npm)
+brew install node
+```
+
+**Option 2: Download from Official Website**
+1. Go to [nodejs.org](https://nodejs.org/)
+2. Download the LTS version for macOS
+3. Run the installer package (.pkg file)
+4. Follow the installation wizard
+
+#### Windows
+
+**Option 1: Download from Official Website (Recommended)**
+1. Go to [nodejs.org](https://nodejs.org/)
+2. Download the LTS version for Windows
+3. Run the installer (.msi file)
+4. Follow the installation wizard (npm is included automatically)
+
+#### Verify Installation
+
+After installation, verify that Node.js and npm are installed correctly:
+
+**Mac/Linux/Windows:**
+```bash
+node --version
+npm --version
+```
+
+You should see version numbers for both commands (e.g., `v18.17.0` for Node.js and `9.6.7` for npm).
+
+### 2. Spotify App Configuration
 
 1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
 2. Create a new app
@@ -52,33 +91,29 @@ If you want to use the YouTube playlist feature, you only need to configure Goog
 
 #### Setup File
 
-**Credentials File**: Save the downloaded OAuth credentials as `credentials.json` in the root directory:
-```json
-{
-  "installed": {
-    "client_id": "your_client_id.apps.googleusercontent.com",
-    "client_secret": "your_client_secret",
-    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    "token_uri": "https://oauth2.googleapis.com/token",
-    "redirect_uris": ["http://localhost"]
-  }
-}
-```
+**Credentials File**: Save the downloaded OAuth credentials as `credentials.json` in the root directory.
 
 **That's it!** The app will automatically handle the OAuth flow when you select YouTube and click "Connect with YouTube". The `token.json` file will be created automatically in the root directory and tokens will be refreshed as needed.
 
-### 4. Installation and Running
+### 5. Installation and Running
 
+#### Install Dependencies
+
+**Mac/Linu/Windows (Command Prompt, PowerShell):**
 ```bash
-# Install dependencies
 npm install
+```
 
+#### Start the Application
+
+**Mac/Linux/Windows (Command Prompt, PowerShell):**
+```bash
 # Start both backend server and React app
 npm run dev
 
 # Or run them separately:
-# npm run server (runs backend on port 3001)
-# npm start (runs React app on port 3000)
+# npm run server  # (runs backend on port 3001)
+# npm start       # (runs React app on port 3000)
 ```
 
 **Important**: You must run both the backend server (port 3001) and the React app (port 3000) for Spotify authentication to work properly. The backend server handles the OAuth token exchange with Spotify.
