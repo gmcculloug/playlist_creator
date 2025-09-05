@@ -9,8 +9,7 @@
     "express": "^4.21.2",
     "fuse.js": "^6.6.2",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-scripts": "^0.0.0"
+    "react-dom": "^18.3.1"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -18,10 +17,16 @@
     "dev": "concurrently \"npm run server\" \"npm start\"",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:ci": "react-scripts test --watchAll=false",
+    "test:coverage": "react-scripts test --watchAll=false --coverage",
     "eject": "react-scripts eject"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "concurrently": "^8.2.2",
+    "react-scripts": "^5.0.1"
   },
   "eslintConfig": {
     "extends": [
