@@ -382,6 +382,14 @@
   background: #e60000;
   border-color: #e60000;
 }
+.platform-button-small.active.trello {
+  border-color: #026aa7;
+  background: #026aa7;
+}
+.platform-button-small.active.trello:hover {
+  background: #0079bf;
+  border-color: #0079bf;
+}
 
 .platform-button-small svg {
   width: 16px;
@@ -411,4 +419,102 @@
   padding: 40px;
   color: #666;
   font-size: 16px;
+}
+
+/* Trello-specific styles */
+.trello-lists {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px;
+  background: #f8f9fa;
+  text-align: left;
+}
+
+.list-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  transition: background-color 0.2s;
+  margin: 0;
+  text-align: left;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.list-checkbox:hover {
+  background: #e9ecef;
+}
+
+.list-checkbox input[type="checkbox"] {
+  margin: 0;
+  flex-shrink: 0;
+  width: auto;
+}
+
+.list-checkbox label {
+  margin: 0;
+  cursor: pointer;
+  flex-grow: 0;
+  flex-shrink: 0;
+  font-size: 14px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#trelloBoard {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.songs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.clear-songs-button {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.clear-songs-button:hover {
+  background: #c82333;
+}
+
+.clear-songs-button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Ensure Trello column selection is left-aligned */
+.playlist-creator .trello-lists {
+  text-align: left;
+}
+
+.playlist-creator .trello-lists .list-checkbox {
+  text-align: left;
+  justify-content: flex-start;
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import SpotifyAPI from './SpotifyAPI';
 import YouTubeAPI from './YouTubeAPI';
+import TrelloAPI from './TrelloAPI';
 import FuzzyMatcher from './FuzzyMatcher';
 
 const PlaylistCreator = ({ accessToken, platform }) => {
@@ -11,8 +12,85 @@ const PlaylistCreator = ({ accessToken, platform }) => {
   const [results, setResults] = useState(null);
   const [userPlaylists, setUserPlaylists] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  
+  // Trello-specific state
+  const [selectedBoard, setSelectedBoard] = useState('');
+  const [availableBoards, setAvailableBoards] = useState([]);
+  const [boardLists, setBoardLists] = useState([]);
+  const [selectedLists, setSelectedLists] = useState([]);
+  const [songsByColumn, setSongsByColumn] = useState({});
 
   const fuzzyMatcher = new FuzzyMatcher();
+
+  // Initialize Trello data
+  useEffect(() => {
+    if (platform === 'trello') {
+      const fetchTrelloBoards = async () => {
+        try {
+          const trelloAPI = new TrelloAPI();
+          const boards = await trelloAPI.getConfiguredBoards();
+          setAvailableBoards(boards);
+          
+          // Auto-select if only one board
+          if (boards.length === 1) {
+            setSelectedBoard(boards[0].id);
+          }
+        } catch (error) {
+          console.error('Error fetching Trello boards:', error);
+          setStatus(`Error fetching Trello boards: ${error.message}`);
+        }
+      };
+      
+      fetchTrelloBoards();
+    }
+  }, [platform]);
+
+  // Fetch board lists when board is selected
+  useEffect(() => {
+    if (platform === 'trello' && selectedBoard) {
+      const fetchBoardLists = async () => {
+        try {
+          const trelloAPI = new TrelloAPI();
+          const lists = await trelloAPI.getBoardLists(selectedBoard);
+          setBoardLists(lists);
+        } catch (error) {
+          console.error('Error fetching board lists:', error);
+          setStatus(`Error fetching board lists: ${error.message}`);
+        }
+      };
+      
+      fetchBoardLists();
+    }
+  }, [platform, selectedBoard]);
+
+  // Update song list when Trello lists are selected
+  useEffect(() => {
+    if (platform === 'trello') {
+      const updateSongList = () => {
+        // Rebuild song list from all selected columns
+        const allSongs = [];
+        selectedLists.forEach(listId => {
+          if (songsByColumn[listId]) {
+            allSongs.push(...songsByColumn[listId]);
+          }
+        });
+        
+        const songNames = allSongs.join('\n');
+        setSongList(songNames);
+        localStorage.setItem('playlist_creator_songs', songNames);
+      };
+      
+      updateSongList();
+    }
+  }, [platform, selectedLists, songsByColumn]);
+
+  // Load persisted songs when component mounts
+  useEffect(() => {
+    const savedSongs = localStorage.getItem('playlist_creator_songs');
+    if (savedSongs && !songList) {
+      setSongList(savedSongs);
+    }
+  }, [songList]);
 
   // Fetch user's playlists on component mount
   useEffect(() => {
@@ -40,6 +118,9 @@ const PlaylistCreator = ({ accessToken, platform }) => {
           } else {
             console.log('YouTube mode active but no valid OAuth token for user playlists');
           }
+        } else if (platform === 'trello') {
+          // Trello doesn't have user playlists in the traditional sense
+          playlists = [];
         }
         
         console.log('Fetched playlists:', playlists);
@@ -68,6 +149,58 @@ const PlaylistCreator = ({ accessToken, platform }) => {
     setShowDropdown(false);
   };
 
+  // Handle Trello board selection
+  const handleBoardSelect = (boardId) => {
+    setSelectedBoard(boardId);
+    setSelectedLists([]); // Clear selected lists when board changes
+    setBoardLists([]); // Clear current lists
+    setSongsByColumn({}); // Clear songs by column mapping
+  };
+
+  // Handle Trello list selection
+  const handleListToggle = async (listId) => {
+    const isCurrentlySelected = selectedLists.includes(listId);
+    
+    if (isCurrentlySelected) {
+      // Remove the list and its songs
+      setSelectedLists(prev => prev.filter(id => id !== listId));
+      setSongsByColumn(prev => {
+        const updated = { ...prev };
+        delete updated[listId];
+        return updated;
+      });
+    } else {
+      // Add the list and fetch its songs
+      setSelectedLists(prev => [...prev, listId]);
+      
+      try {
+        const trelloAPI = new TrelloAPI();
+        const songs = await trelloAPI.getCardsFromLists([listId]);
+        const songNames = songs.map(song => song.name);
+        
+        setSongsByColumn(prev => ({
+          ...prev,
+          [listId]: songNames
+        }));
+      } catch (error) {
+        console.error('Error fetching songs for list:', error);
+        setStatus(`Error fetching songs for column: ${error.message}`);
+        // Remove the list from selection if fetching failed
+        setSelectedLists(prev => prev.filter(id => id !== listId));
+      }
+    }
+  };
+
+  // Clear songs list
+  const handleClearSongs = () => {
+    setSongList('');
+    localStorage.removeItem('playlist_creator_songs');
+    if (platform === 'trello') {
+      setSelectedLists([]);
+      setSongsByColumn({});
+    }
+  };
+
   // Filter playlists based on current input
   const filteredPlaylists = userPlaylists.filter(playlist =>
     playlist.name.toLowerCase().includes(playlistName.toLowerCase())
@@ -93,7 +226,13 @@ const PlaylistCreator = ({ accessToken, platform }) => {
 
       let allCoreSongs = [];
 
-      if (platform === 'spotify') {
+      if (platform === 'trello') {
+        // For Trello, we don't create playlists, we just use it as a source
+        // The songs are already populated in the songList from the selected lists
+        setStatus('Trello mode: Songs loaded from selected lists. Please switch to Spotify or YouTube to create a playlist.');
+        setIsLoading(false);
+        return;
+      } else if (platform === 'spotify') {
         const spotifyAPI = new SpotifyAPI(accessToken);
         setStatus('Fetching your Spotify playlists...');
         const userPlaylists = await spotifyAPI.getUserPlaylists();
@@ -326,8 +465,9 @@ const PlaylistCreator = ({ accessToken, platform }) => {
   return (
     <div className="playlist-creator">
 
-      <div className="form-group">
-        <label htmlFor="playlistName">Playlist Name:</label>
+      {platform !== 'trello' && (
+        <div className="form-group">
+          <label htmlFor="playlistName">Playlist Name:</label>
         <div className="playlist-dropdown-container">
           <input
             id="playlistName"
@@ -370,16 +510,75 @@ const PlaylistCreator = ({ accessToken, platform }) => {
             </div>
           )}
         </div>
-      </div>
+        </div>
+      )}
 
+      {platform === 'trello' && (
+        <>
+          <div className="form-group">
+            <label htmlFor="trelloBoard">Trello Board:</label>
+            <select
+              id="trelloBoard"
+              value={selectedBoard}
+              onChange={(e) => handleBoardSelect(e.target.value)}
+              disabled={isLoading}
+            >
+              <option value="">Select a board...</option>
+              {availableBoards.map((board) => (
+                <option key={board.id} value={board.id}>
+                  {board.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {selectedBoard && boardLists.length > 0 && (
+            <div className="form-group">
+              <label>Select Columns:</label>
+              <div className="trello-lists">
+                {boardLists.map((list) => (
+                  <div key={list.id} className="list-checkbox">
+                    <input
+                      type="checkbox"
+                      id={`list-${list.id}`}
+                      checked={selectedLists.includes(list.id)}
+                      onChange={() => handleListToggle(list.id)}
+                      disabled={isLoading}
+                    />
+                    <label htmlFor={`list-${list.id}`}>{list.name}</label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       <div className="form-group">
-        <label htmlFor="songList">Songs (one per line):</label>
+        <div className="songs-header">
+          <label htmlFor="songList">Songs (one per line):</label>
+          {songList.trim() && (
+            <button 
+              type="button"
+              className="clear-songs-button"
+              onClick={handleClearSongs}
+              disabled={isLoading}
+            >
+              Clear
+            </button>
+          )}
+        </div>
         <textarea
           id="songList"
           value={songList}
-          onChange={(e) => setSongList(e.target.value)}
-          placeholder="Enter song names, one per line...&#10;Example:&#10;Bohemian Rhapsody&#10;Hotel California&#10;Sweet Child O' Mine"
+          onChange={(e) => {
+            setSongList(e.target.value);
+            localStorage.setItem('playlist_creator_songs', e.target.value);
+          }}
+          placeholder={platform === 'trello' ? 
+            "Songs will appear here when you select Trello columns above..." :
+            "Enter song names, one per line...\nExample:\nBohemian Rhapsody\nHotel California\nSweet Child O' Mine"
+          }
           disabled={isLoading}
         />
       </div>
@@ -387,9 +586,19 @@ const PlaylistCreator = ({ accessToken, platform }) => {
       <button 
         className="create-button" 
         onClick={handleCreatePlaylist}
-        disabled={isLoading || !playlistName.trim() || !songList.trim()}
+        disabled={
+          isLoading || 
+          !playlistName.trim() || 
+          !songList.trim() ||
+          (platform === 'trello')
+        }
       >
-        {isLoading ? `Creating ${platform === 'spotify' ? 'Spotify' : 'YouTube'} Playlist...` : `Create ${platform === 'spotify' ? 'Spotify' : 'YouTube'} Playlist`}
+        {platform === 'trello' ? 
+          'Switch to Spotify or YouTube to Create Playlist' :
+          isLoading ? 
+            `Creating ${platform === 'spotify' ? 'Spotify' : 'YouTube'} Playlist...` : 
+            `Create ${platform === 'spotify' ? 'Spotify' : 'YouTube'} Playlist`
+        }
       </button>
 
       {status && (

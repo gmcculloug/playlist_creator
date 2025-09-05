@@ -9,6 +9,7 @@ function App() {
   const [selectedPlatform, setSelectedPlatform] = useState(null);
   const [spotifyConfigured, setSpotifyConfigured] = useState(false);
   const [youtubeConfigured, setYoutubeConfigured] = useState(false);
+  const [trelloConfigured, setTrelloConfigured] = useState(false);
 
   // Check if environment variables are configured
   const checkSpotifyConfig = () => {
@@ -25,6 +26,11 @@ function App() {
       console.warn('Error checking YouTube config:', error);
       return false;
     }
+  };
+
+  const checkTrelloConfig = () => {
+    const trelloBoardIds = process.env.REACT_APP_TRELLO_BOARD_IDS;
+    return trelloBoardIds && trelloBoardIds !== 'board1,board2,board3' && trelloBoardIds.trim() !== '';
   };
 
   // Function to check if Spotify token is valid
@@ -64,6 +70,7 @@ function App() {
     const checkConfigurations = async () => {
       setSpotifyConfigured(checkSpotifyConfig());
       setYoutubeConfigured(await checkYoutubeConfig());
+      setTrelloConfigured(checkTrelloConfig());
     };
     
     checkConfigurations();
@@ -88,6 +95,9 @@ function App() {
       if (savedPlatform === 'youtube') {
         // For YouTube, check authentication status
         checkYouTubeAuth();
+      } else if (savedPlatform === 'trello') {
+        // Trello doesn't require authentication, just mark as ready
+        setAccessToken('trello-mode');
       } else if (savedPlatform === 'spotify' && savedToken && savedExpiry) {
         // Make sure we don't have YouTube token in Spotify storage
         if (savedToken === 'youtube-mode') {
@@ -110,6 +120,7 @@ function App() {
     // Don't allow selection if platform is not configured
     if (platform === 'spotify' && !spotifyConfigured) return;
     if (platform === 'youtube' && !youtubeConfigured) return;
+    if (platform === 'trello' && !trelloConfigured) return;
     
     console.log('Platform selected:', platform);
     setSelectedPlatform(platform);
@@ -120,6 +131,11 @@ function App() {
       clearSpotifyTokens();
       // Check if YouTube is already authenticated
       checkYouTubeAuth();
+    } else if (platform === 'trello') {
+      // Clear any existing tokens when switching to Trello
+      clearSpotifyTokens();
+      // Trello doesn't require authentication
+      setAccessToken('trello-mode');
     } else if (platform === 'spotify') {
       // Check if user already has valid Spotify token
       const savedToken = localStorage.getItem('spotify_access_token');
@@ -182,6 +198,17 @@ function App() {
             title={!youtubeConfigured ? 'YouTube not configured. Add credentials.json file and ensure backend server is running' : ''}
           >
             ▶ YouTube
+          </button>
+          <button 
+            className={`platform-button-small trello ${selectedPlatform === 'trello' ? 'active' : ''} ${!trelloConfigured ? 'disabled' : ''}`}
+            onClick={() => handlePlatformSelect('trello')}
+            disabled={!trelloConfigured}
+            title={!trelloConfigured ? 'Trello not configured. Set REACT_APP_TRELLO_BOARD_IDS in .env file' : ''}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M21 0H3C1.343 0 0 1.343 0 3v18c0 1.657 1.343 3 3 3h18c1.657 0 3-1.343 3-3V3c0-1.657-1.343-3-3-3zM10.5 18.5c0 .828-.672 1.5-1.5 1.5H5.5c-.828 0-1.5-.672-1.5-1.5v-13C4 4.672 4.672 4 5.5 4H9c.828 0 1.5.672 1.5 1.5v13zM20 12c0 .828-.672 1.5-1.5 1.5H15c-.828 0-1.5-.672-1.5-1.5V5.5c0-.828.672-1.5 1.5-1.5h3.5c.828 0 1.5.672 1.5 1.5V12z"/>
+            </svg>
+            Trello
           </button>
         </div>
       </header>

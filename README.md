@@ -1,18 +1,25 @@
 # Playlist Creator
 
-A React app that creates playlists on both Spotify and YouTube by finding songs/videos from your "core" playlists using fuzzy matching.
-
-![alt text](<images/screenshot 1.png>)
+A React app that creates playlists on Spotify and YouTube by finding songs/videos from your "core" playlists using fuzzy matching. Also supports importing songs from Trello boards for playlist creation.
 
 ## Features
 
-- **Multi-Platform Support**: Works with both Spotify and YouTube
+- **Multi-Platform Support**: Works with Spotify, YouTube, and Trello
 - **Spotify Authentication**: Secure OAuth2 authentication with PKCE
 - **YouTube Authentication**: OAuth2 with automatic token refresh
+- **Trello Integration**: Import songs from Trello board columns for playlist creation
 - **Core Playlist Detection**: Automatically finds playlists with "core" in the name (case-insensitive)
 - **Fuzzy Matching**: Uses intelligent fuzzy matching to find songs/videos even with slight spelling differences
 - **Real-time Feedback**: Shows progress and results of the playlist creation process
 - **Existing Playlist Updates**: Can add to existing playlists or create new ones
+- **Cross-Platform Song Management**: Import songs from Trello and create playlists on Spotify or YouTube
+
+
+Creating Playlists
+![alt text](<images/screenshot 1.png>)
+
+Trello Integration
+![alt text](<images/screenshot - trello.png>)
 
 ## Setup
 
@@ -78,7 +85,23 @@ You should see version numbers for both commands (e.g., `v18.17.0` for Node.js a
    REACT_APP_REDIRECT_URI=http://localhost:3000/spotify
    ```
 
-### 3. YouTube Setup (Optional)
+### 3. Trello Setup (Optional)
+
+If you want to use the Trello integration to import songs from Trello boards:
+
+1. Edit `.env` and add your Trello board IDs:
+   ```
+   REACT_APP_TRELLO_BOARD_IDS=board_id_1,board_id_2,board_id_3
+   ```
+
+2. To find your Trello board IDs:
+   - Open your Trello board in a web browser
+   - The board ID is in the URL: `https://trello.com/b/BOARD_ID/board-name`
+   - Copy the BOARD_ID part (e.g., `5f8a1b2c3d4e5f67`)
+
+**Note**: The Trello integration uses public API endpoints with fallback to mock data for demonstration. For production use with private boards, you would need to add Trello API authentication.
+
+### 4. YouTube Setup (Optional)
 
 If you want to use the YouTube playlist feature, you only need to configure Google Cloud credentials:
 
@@ -124,13 +147,26 @@ The app will be available at `http://localhost:3000`.
 
 ## Usage
 
-1. **Platform Selection**: Choose between Spotify or YouTube at the top of the app
-2. **Authentication**: 
+### Basic Workflow
+
+1. **Platform Selection**: Choose between Spotify, YouTube, or Trello at the top of the app
+2. **Authentication** (Spotify/YouTube only): 
    - **Spotify**: Click "Connect with Spotify" to authenticate with your Spotify account
    - **YouTube**: Click "Connect with YouTube" to authenticate with your Google account
-3. **Enter Playlist Name**: Type the name for your new playlist (or select an existing one from the dropdown)
-4. **Add Songs**: Enter song/video names, one per line, in the text area
-5. **Create Playlist**: Click "Create Playlist" to start the process
+   - **Trello**: No authentication required - uses board IDs from configuration
+3. **Song Input**: Choose your method for adding songs:
+   - **Manual Entry**: Type song names directly in the text area
+   - **Trello Import**: Select a Trello board and columns to automatically populate songs
+4. **Create Playlist** (Spotify/YouTube): Switch to Spotify or YouTube and click "Create Playlist"
+
+### Trello Workflow
+
+1. **Select Trello**: Click the Trello button to access the import feature
+2. **Choose Board**: Select a Trello board from the dropdown (auto-selects if only one configured)
+3. **Select Columns**: Check the columns/lists you want to import songs from
+4. **Review Songs**: Songs from selected columns automatically appear in the text area
+5. **Switch Platform**: Click Spotify or YouTube to create playlists with the imported songs
+6. **Create Playlist**: Enter a playlist name and click "Create Playlist"
 
 The app will:
 - Find all your playlists containing "core" in the name
@@ -202,6 +238,23 @@ The app will find these songs in your core playlists even if they're stored as:
 - This was fixed in recent updates - if you see repeated API calls, refresh the page
 - Check console for "Spotify API Call" or "YouTube API Call" messages repeating rapidly
 
+### Trello Issues
+
+### Trello board not showing
+- Verify your board IDs are correct in the `.env` file
+- Check that the board IDs are comma-separated without spaces
+- Ensure you're using the board ID from the URL, not the board name
+
+### Trello columns not loading
+- The integration uses public API endpoints and may fall back to mock data
+- For private boards, the API calls will fail gracefully and show demo columns
+- Check browser console for "Getting lists for board" messages
+
+### Songs not importing from Trello
+- Verify the column checkboxes are properly selected
+- Check that cards in the Trello columns contain song names
+- The app extracts song names from card titles and descriptions
+
 ## Technical Details
 
 ### Dependencies
@@ -232,6 +285,7 @@ The app will find these songs in your core playlists even if they're stored as:
     ├── PlaylistCreator.js  # Main playlist creation logic (multi-platform)
     ├── SpotifyAPI.js       # Spotify API wrapper
     ├── YouTubeAPI.js       # YouTube API wrapper with token refresh
+    ├── TrelloAPI.js        # Trello API wrapper for board and card access
     ├── FuzzyMatcher.js     # Fuzzy matching logic
     └── index.js           # App entry point
 ```
