@@ -127,13 +127,9 @@ function App() {
     localStorage.setItem('selected_platform', platform);
     
     if (platform === 'youtube') {
-      // Clear any Spotify tokens when switching to YouTube
-      clearSpotifyTokens();
       // Check if YouTube is already authenticated
       checkYouTubeAuth();
     } else if (platform === 'trello') {
-      // Clear any existing tokens when switching to Trello
-      clearSpotifyTokens();
       // Trello doesn't require authentication
       setAccessToken('trello-mode');
     } else if (platform === 'spotify') {
