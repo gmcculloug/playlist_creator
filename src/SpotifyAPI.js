@@ -139,6 +139,71 @@ class SpotifyAPI {
       throw new Error('Failed to add tracks to playlist: ' + error.response?.data?.error?.message || error.message);
     }
   }
+
+  async removeTracksFromPlaylist(playlistId, trackUris) {
+    try {
+      const batchSize = 100;
+      
+      for (let i = 0; i < trackUris.length; i += batchSize) {
+        const batch = trackUris.slice(i, i + batchSize);
+        const tracks = batch.map(uri => ({ uri }));
+        
+        await axios.delete(
+          `${this.baseURL}/playlists/${playlistId}/tracks`,
+          {
+            headers: this.headers,
+            data: { tracks }
+          }
+        );
+      }
+      
+      return true;
+    } catch (error) {
+      throw new Error('Failed to remove tracks from playlist: ' + error.response?.data?.error?.message || error.message);
+    }
+  }
+
+  async replacePlaylistTracks(playlistId, trackUris) {
+    try {
+      // First, replace all tracks with the new ones (Spotify supports this with PUT)
+      const batchSize = 100;
+      let isFirstBatch = true;
+      
+      for (let i = 0; i < trackUris.length; i += batchSize) {
+        const batch = trackUris.slice(i, i + batchSize);
+        
+        if (isFirstBatch) {
+          // First batch replaces all existing tracks
+          await axios.put(
+            `${this.baseURL}/playlists/${playlistId}/tracks`,
+            { uris: batch },
+            { headers: this.headers }
+          );
+          isFirstBatch = false;
+        } else {
+          // Subsequent batches are added
+          await axios.post(
+            `${this.baseURL}/playlists/${playlistId}/tracks`,
+            { uris: batch },
+            { headers: this.headers }
+          );
+        }
+      }
+      
+      // Handle empty playlist case
+      if (trackUris.length === 0) {
+        await axios.put(
+          `${this.baseURL}/playlists/${playlistId}/tracks`,
+          { uris: [] },
+          { headers: this.headers }
+        );
+      }
+      
+      return true;
+    } catch (error) {
+      throw new Error('Failed to replace playlist tracks: ' + error.response?.data?.error?.message || error.message);
+    }
+  }
 }
 
 export default SpotifyAPI;

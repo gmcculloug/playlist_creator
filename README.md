@@ -11,7 +11,8 @@ A React app that creates playlists on Spotify and YouTube by finding songs/video
 - **Core Playlist Detection**: Automatically finds playlists with "core" in the name (case-insensitive)
 - **Fuzzy Matching**: Uses intelligent fuzzy matching to find songs/videos even with slight spelling differences
 - **Real-time Feedback**: Shows progress and results of the playlist creation process
-- **Existing Playlist Updates**: Can add to existing playlists or create new ones
+- **Smart Playlist Updates**: Intelligently update existing playlists with append or reset modes
+- **Diff-based Updates**: Only makes necessary changes to preserve playlist efficiency
 - **Cross-Platform Song Management**: Import songs from Trello and create playlists on Spotify or YouTube
 
 
@@ -157,7 +158,12 @@ The app will be available at `http://localhost:3000`.
 3. **Song Input**: Choose your method for adding songs:
    - **Manual Entry**: Type song names directly in the text area
    - **Trello Import**: Select a Trello board and columns to automatically populate songs
-4. **Create Playlist** (Spotify/YouTube): Switch to Spotify or YouTube and click "Create Playlist"
+4. **Playlist Configuration**:
+   - **New Playlist**: Enter a new playlist name and click "Create Playlist"
+   - **Existing Playlist**: Type or select an existing playlist name to see update options:
+     - **Append new songs**: Add new songs to the end of the existing playlist
+     - **Match song list**: Replace the entire playlist with the new song list in exact order
+5. **Create/Update**: Click the button to create a new playlist or update an existing one
 
 ### Trello Workflow
 
@@ -174,6 +180,30 @@ The app will:
 - Use fuzzy matching to find the best matches for your input songs/videos
 - Create a new playlist or update an existing one with the matched items
 - Show you the results with matched and unmatched items
+
+### Playlist Update Modes
+
+When updating an existing playlist, you can choose between two modes:
+
+#### Append New Songs Mode
+- **Behavior**: Adds new songs to the end of the existing playlist
+- **Preserves**: All existing songs remain in their current order
+- **Efficiency**: Only adds songs that aren't already in the playlist
+- **Use Case**: Gradually expanding a playlist while keeping existing content
+
+#### Match Song List Mode  
+- **Behavior**: Replaces the entire playlist with the new song list
+- **Order**: Songs appear in the exact order specified in the "Songs" field
+- **Efficiency**: Uses smart diff algorithm to minimize API calls
+- **Use Case**: Completely restructuring a playlist or ensuring exact ordering
+
+### Smart Diff Algorithm
+
+The app uses an intelligent update system that:
+- **Analyzes** existing playlist content before making changes
+- **Minimizes** API calls by only performing necessary operations
+- **Preserves** song order according to the selected mode
+- **Reports** detailed statistics about added, skipped, and updated songs
 
 ## How Fuzzy Matching Works
 
@@ -254,6 +284,23 @@ The app will find these songs in your core playlists even if they're stored as:
 - Verify the column checkboxes are properly selected
 - Check that cards in the Trello columns contain song names
 - The app extracts song names from card titles and descriptions
+
+### Playlist Update Issues
+
+### Radio buttons not appearing
+- Radio buttons only show when typing or selecting an existing playlist name
+- Ensure you have existing playlists that match the typed name
+- Try selecting from the dropdown to confirm playlist detection
+
+### Update mode not working as expected
+- **Append new songs**: Only adds songs not already in the playlist - check if songs already exist
+- **Match song list**: Completely replaces playlist content - verify this is the intended behavior
+- Check the results section for detailed statistics about what was added/skipped
+
+### Playlist order incorrect after update
+- **Match song list**: Playlist order matches the exact order in the "Songs" field
+- **Append new songs**: New songs are added to the end, existing songs keep their positions
+- Clear the playlist and recreate if order is critical
 
 ## Technical Details
 

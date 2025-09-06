@@ -12,6 +12,8 @@ const PlaylistCreator = ({ accessToken, platform }) => {
   const [results, setResults] = useState(null);
   const [userPlaylists, setUserPlaylists] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [updateMode, setUpdateMode] = useState('append'); // 'append' or 'reset'
+  const [isExistingPlaylist, setIsExistingPlaylist] = useState(false);
   
   // Trello-specific state
   const [selectedBoard, setSelectedBoard] = useState('');
@@ -21,6 +23,30 @@ const PlaylistCreator = ({ accessToken, platform }) => {
   const [songsByColumn, setSongsByColumn] = useState({});
 
   const fuzzyMatcher = new FuzzyMatcher();
+
+  // Helper function to calculate playlist differences and updates needed
+  const calculatePlaylistDiff = (existingUris, newUris) => {
+    const existing = [...existingUris];
+    const target = [...newUris];
+    
+    // Find songs to remove (in existing but not in target)
+    const toRemove = existing.filter(uri => !target.includes(uri));
+    
+    // Find songs to add (in target but not in existing)
+    const toAdd = target.filter(uri => !existing.includes(uri));
+    
+    // Check if reordering is needed
+    const existingFiltered = existing.filter(uri => target.includes(uri));
+    const targetFiltered = target.filter(uri => existing.includes(uri));
+    const needsReorder = !existingFiltered.every((uri, index) => uri === targetFiltered[index]);
+    
+    return {
+      toRemove,
+      toAdd,
+      needsReorder,
+      finalOrder: target
+    };
+  };
 
   // Initialize Trello data
   useEffect(() => {
@@ -141,12 +167,19 @@ const PlaylistCreator = ({ accessToken, platform }) => {
   const handlePlaylistNameChange = (value) => {
     setPlaylistName(value);
     setShowDropdown(true);
+    
+    // Check if this matches an existing playlist
+    const existingPlaylist = userPlaylists.find(playlist => 
+      playlist.name.toLowerCase() === value.toLowerCase()
+    );
+    setIsExistingPlaylist(!!existingPlaylist);
   };
 
   // Handle playlist selection from dropdown
   const handlePlaylistSelect = (playlist) => {
     setPlaylistName(playlist.name);
     setShowDropdown(false);
+    setIsExistingPlaylist(true);
   };
 
   // Handle Trello board selection
@@ -327,59 +360,82 @@ const PlaylistCreator = ({ accessToken, platform }) => {
         let isUpdate = false;
         
         if (existingPlaylist) {
-          const shouldUpdate = window.confirm(
-            `A playlist named "${playlistName}" already exists.\n\n` +
-            `Would you like to update it by adding missing songs?\n\n` +
-            `Click "OK" to update the existing playlist, or "Cancel" to create a new one with a different name.`
-          );
-          
-          if (!shouldUpdate) {
-            setStatus('Please choose a different playlist name.');
-            setIsLoading(false);
-            return;
-          }
-          
           targetPlaylist = existingPlaylist;
           isUpdate = true;
-          setStatus('Updating existing Spotify playlist...');
+          
+          if (updateMode === 'reset') {
+            setStatus('Resetting Spotify playlist...');
+            // Clear all existing tracks from the playlist
+            const existingTracks = await spotifyAPI.getPlaylistTracks(targetPlaylist.id);
+            if (existingTracks.length > 0) {
+              const existingTrackUris = existingTracks.map(track => track.uri);
+              await spotifyAPI.removeTracksFromPlaylist(targetPlaylist.id, existingTrackUris);
+            }
+          } else {
+            setStatus('Updating existing Spotify playlist...');
+          }
         } else {
           setStatus('Creating new Spotify playlist...');
           targetPlaylist = await spotifyAPI.createPlaylist(playlistName);
+          // Add new playlist to userPlaylists state
+          setUserPlaylists(prev => [targetPlaylist, ...prev]);
+          setIsExistingPlaylist(true);
         }
 
-        // Get existing tracks if updating
-        let existingTrackUris = [];
-        if (isUpdate) {
-          setStatus('Checking existing songs in playlist...');
-          const existingTracks = await spotifyAPI.getPlaylistTracks(targetPlaylist.id);
-          existingTrackUris = existingTracks.map(track => track.uri);
-        }
-
-        // Filter out songs that already exist in the playlist
         const trackUris = matchedSongs.map(match => match.matched.uri);
-        const newTrackUris = isUpdate ? 
-          trackUris.filter(uri => !existingTrackUris.includes(uri)) : 
-          trackUris;
+        let addedCount = 0;
+        let skippedCount = 0;
 
-        if (newTrackUris.length > 0) {
-          setStatus(`Adding ${newTrackUris.length} song(s) to playlist...`);
-          await spotifyAPI.addTracksToPlaylist(targetPlaylist.id, newTrackUris);
+        if (isUpdate) {
+          setStatus('Analyzing playlist changes...');
+          const existingTracks = await spotifyAPI.getPlaylistTracks(targetPlaylist.id);
+          const existingTrackUris = existingTracks.map(track => track.uri);
+
+          if (updateMode === 'append') {
+            // Append mode: add new songs to the end, keeping existing order
+            const newTrackUris = trackUris.filter(uri => !existingTrackUris.includes(uri));
+            const finalUris = [...existingTrackUris, ...newTrackUris];
+            
+            if (newTrackUris.length > 0) {
+              setStatus(`Adding ${newTrackUris.length} new song(s) to playlist...`);
+              await spotifyAPI.addTracksToPlaylist(targetPlaylist.id, newTrackUris);
+            }
+            
+            addedCount = newTrackUris.length;
+            skippedCount = trackUris.length - newTrackUris.length;
+          } else {
+            // Reset mode: replace entire playlist with new songs in exact order
+            setStatus('Updating playlist to match new song order...');
+            await spotifyAPI.replacePlaylistTracks(targetPlaylist.id, trackUris);
+            addedCount = trackUris.length;
+            skippedCount = 0;
+          }
+        } else {
+          // New playlist: just add all songs
+          if (trackUris.length > 0) {
+            setStatus(`Adding ${trackUris.length} song(s) to playlist...`);
+            await spotifyAPI.addTracksToPlaylist(targetPlaylist.id, trackUris);
+          }
+          addedCount = trackUris.length;
         }
 
         const statusMessage = isUpdate ? 
-          `Playlist updated! Added ${newTrackUris.length} new song(s).` :
+          (updateMode === 'reset' ? 
+            `Playlist reset! Added ${addedCount} song(s).` :
+            `Playlist updated! Added ${addedCount} new song(s).`) :
           'Playlist created successfully!';
         
         setStatus(statusMessage);
         setResults({
           matchedCount: matchedSongs.length,
-          addedCount: newTrackUris.length,
-          skippedCount: isUpdate ? (trackUris.length - newTrackUris.length) : 0,
+          addedCount: addedCount,
+          skippedCount: skippedCount,
           matchedSongs: matchedSongs,
           unmatchedSongs,
           playlistUrl: targetPlaylist.external_urls.spotify,
           playlistName: targetPlaylist.name,
-          isUpdate
+          isUpdate,
+          updateMode: isUpdate ? updateMode : null
         });
       } else if (platform === 'youtube') {
         const youtubeAPI = new YouTubeAPI();
@@ -391,59 +447,87 @@ const PlaylistCreator = ({ accessToken, platform }) => {
         let isUpdate = false;
         
         if (existingPlaylist) {
-          const shouldUpdate = window.confirm(
-            `A playlist named "${playlistName}" already exists.\n\n` +
-            `Would you like to update it by adding missing videos?\n\n` +
-            `Click "OK" to update the existing playlist, or "Cancel" to create a new one with a different name.`
-          );
-          
-          if (!shouldUpdate) {
-            setStatus('Please choose a different playlist name.');
-            setIsLoading(false);
-            return;
-          }
-          
           targetPlaylist = existingPlaylist;
           isUpdate = true;
-          setStatus('Updating existing YouTube playlist...');
+          
+          if (updateMode === 'reset') {
+            setStatus('Resetting YouTube playlist...');
+            // Clear all existing videos from the playlist
+            const existingVideos = await youtubeAPI.getPlaylistVideos(targetPlaylist.id);
+            if (existingVideos.length > 0) {
+              const existingVideoUris = existingVideos.map(video => video.uri);
+              await youtubeAPI.removeVideosFromPlaylist(targetPlaylist.id, existingVideoUris);
+            }
+          } else {
+            setStatus('Updating existing YouTube playlist...');
+          }
         } else {
           setStatus('Creating new YouTube playlist...');
           targetPlaylist = await youtubeAPI.createPlaylist(playlistName);
+          // Add new playlist to userPlaylists state
+          const newPlaylistItem = {
+            id: targetPlaylist.id,
+            name: targetPlaylist.name,
+            itemCount: 0,
+            publishedAt: new Date().toISOString()
+          };
+          setUserPlaylists(prev => [newPlaylistItem, ...prev]);
+          setIsExistingPlaylist(true);
         }
 
-        // Get existing videos if updating
-        let existingVideoUris = [];
-        if (isUpdate) {
-          setStatus('Checking existing videos in playlist...');
-          const existingVideos = await youtubeAPI.getPlaylistVideos(targetPlaylist.id);
-          existingVideoUris = existingVideos.map(video => video.uri);
-        }
-
-        // Filter out videos that already exist in the playlist
         const videoUris = matchedSongs.map(match => match.matched.uri);
-        const newVideoUris = isUpdate ? 
-          videoUris.filter(uri => !existingVideoUris.includes(uri)) : 
-          videoUris;
+        let addedCount = 0;
+        let skippedCount = 0;
 
-        if (newVideoUris.length > 0) {
-          setStatus(`Adding ${newVideoUris.length} video(s) to playlist...`);
-          await youtubeAPI.addVideosToPlaylist(targetPlaylist.id, newVideoUris);
+        if (isUpdate) {
+          setStatus('Analyzing playlist changes...');
+          const existingVideos = await youtubeAPI.getPlaylistVideos(targetPlaylist.id);
+          const existingVideoUris = existingVideos.map(video => video.uri);
+
+          if (updateMode === 'append') {
+            // Append mode: add new videos to the end, keeping existing order
+            const newVideoUris = videoUris.filter(uri => !existingVideoUris.includes(uri));
+            
+            if (newVideoUris.length > 0) {
+              setStatus(`Adding ${newVideoUris.length} new video(s) to playlist...`);
+              await youtubeAPI.addVideosToPlaylist(targetPlaylist.id, newVideoUris);
+            }
+            
+            addedCount = newVideoUris.length;
+            skippedCount = videoUris.length - newVideoUris.length;
+          } else {
+            // Reset mode: replace entire playlist with new videos in exact order
+            setStatus('Updating playlist to match new video order...');
+            await youtubeAPI.replacePlaylistVideos(targetPlaylist.id, videoUris);
+            addedCount = videoUris.length;
+            skippedCount = 0;
+          }
+        } else {
+          // New playlist: just add all videos
+          if (videoUris.length > 0) {
+            setStatus(`Adding ${videoUris.length} video(s) to playlist...`);
+            await youtubeAPI.addVideosToPlaylist(targetPlaylist.id, videoUris);
+          }
+          addedCount = videoUris.length;
         }
 
         const statusMessage = isUpdate ? 
-          `Playlist updated! Added ${newVideoUris.length} new video(s).` :
+          (updateMode === 'reset' ? 
+            `Playlist reset! Added ${addedCount} video(s).` :
+            `Playlist updated! Added ${addedCount} new video(s).`) :
           'YouTube playlist created successfully!';
         
         setStatus(statusMessage);
         setResults({
           matchedCount: matchedSongs.length,
-          addedCount: newVideoUris.length,
-          skippedCount: isUpdate ? (videoUris.length - newVideoUris.length) : 0,
+          addedCount: addedCount,
+          skippedCount: skippedCount,
           matchedSongs: matchedSongs,
           unmatchedSongs,
           playlistUrl: targetPlaylist.url,
           playlistName: targetPlaylist.name,
-          isUpdate
+          isUpdate,
+          updateMode: isUpdate ? updateMode : null
         });
       }
 
@@ -510,6 +594,38 @@ const PlaylistCreator = ({ accessToken, platform }) => {
             </div>
           )}
         </div>
+
+        {isExistingPlaylist && (
+          <div className="form-group" style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+            <label>Update mode:</label>
+            <div className="radio-group" style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
+              <div className="radio-option" style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                <input
+                  type="radio"
+                  id="append-mode"
+                  name="updateMode"
+                  value="append"
+                  checked={updateMode === 'append'}
+                  onChange={(e) => setUpdateMode(e.target.value)}
+                  disabled={isLoading}
+                />
+                <label htmlFor="append-mode" style={{whiteSpace: 'nowrap'}}>Append new songs</label>
+              </div>
+              <div className="radio-option" style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                <input
+                  type="radio"
+                  id="reset-mode"
+                  name="updateMode"
+                  value="reset"
+                  checked={updateMode === 'reset'}
+                  onChange={(e) => setUpdateMode(e.target.value)}
+                  disabled={isLoading}
+                />
+                <label htmlFor="reset-mode" style={{whiteSpace: 'nowrap'}}>Match song list</label>
+              </div>
+            </div>
+          </div>
+        )}
         </div>
       )}
 
@@ -596,8 +712,8 @@ const PlaylistCreator = ({ accessToken, platform }) => {
         {platform === 'trello' ? 
           'Switch to Spotify or YouTube to Create Playlist' :
           isLoading ? 
-            `Creating ${platform === 'spotify' ? 'Spotify' : 'YouTube'} Playlist...` : 
-            `Create ${platform === 'spotify' ? 'Spotify' : 'YouTube'} Playlist`
+            `${isExistingPlaylist ? 'Updating' : 'Creating'} ${platform === 'spotify' ? 'Spotify' : 'YouTube'} Playlist...` : 
+            `${isExistingPlaylist ? 'Update' : 'Create'} ${platform === 'spotify' ? 'Spotify' : 'YouTube'} Playlist`
         }
       </button>
 
@@ -615,7 +731,7 @@ const PlaylistCreator = ({ accessToken, platform }) => {
           {results.isUpdate && (
             <>
               <p><strong>Added to playlist:</strong> {results.addedCount} new song(s)</p>
-              {results.skippedCount > 0 && (
+              {results.updateMode === 'append' && results.skippedCount > 0 && (
                 <p><strong>Already in playlist:</strong> {results.skippedCount} song(s) (skipped)</p>
               )}
             </>
@@ -623,7 +739,7 @@ const PlaylistCreator = ({ accessToken, platform }) => {
           
           {results.playlistUrl && (
             <p>
-              <strong>{results.isUpdate ? 'Playlist updated' : 'Playlist created'}:</strong>{' '}
+              <strong>{results.isUpdate ? (results.updateMode === 'reset' ? 'Playlist reset' : 'Playlist updated') : 'Playlist created'}:</strong>{' '}
               <a href={results.playlistUrl} target="_blank" rel="noopener noreferrer">
                 {results.playlistName}
               </a>

@@ -423,6 +423,126 @@ class YouTubeAPI {
     }
   }
 
+  async removeVideosFromPlaylist(playlistId, videoUris) {
+    try {
+      // Ensure token is loaded and refreshed if needed
+      await this.loadToken();
+      
+      const headers = {};
+      if (this.accessToken) {
+        headers['Authorization'] = `Bearer ${this.accessToken}`;
+      } else {
+        throw new Error('No YouTube access token found. Authentication required to remove videos from playlists.');
+      }
+
+      // Get all playlist items to find the item IDs we need to delete
+      const playlistItems = await this.getPlaylistItems(playlistId);
+      
+      // Extract video IDs from URIs and find matching playlist items
+      const videoIdsToRemove = videoUris.map(uri => uri.replace('https://www.youtube.com/watch?v=', ''));
+      const itemsToRemove = playlistItems.filter(item => 
+        videoIdsToRemove.includes(item.snippet.resourceId?.videoId)
+      );
+
+      // Remove each item by its playlist item ID
+      for (const item of itemsToRemove) {
+        const response = await fetch(`${this.baseURL}/playlistItems?id=${item.id}`, {
+          method: 'DELETE',
+          headers: headers
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.warn(`Failed to remove video ${item.snippet.resourceId?.videoId}: ${errorText}`);
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error('YouTube remove videos error:', error);
+      throw new Error('Failed to remove videos from playlist: ' + error.message);
+    }
+  }
+
+  async getPlaylistItems(playlistId) {
+    try {
+      let allItems = [];
+      let nextPageToken = '';
+
+      do {
+        const searchParams = new URLSearchParams({
+          part: 'id,snippet',
+          playlistId: playlistId,
+          maxResults: 50
+        });
+
+        if (nextPageToken) {
+          searchParams.append('pageToken', nextPageToken);
+        }
+
+        const headers = {};
+        if (this.accessToken) {
+          headers['Authorization'] = `Bearer ${this.accessToken}`;
+        } else {
+          throw new Error('No YouTube access token found.');
+        }
+
+        const response = await fetch(`${this.baseURL}/playlistItems?${searchParams}`, { headers });
+        
+        if (!response.ok) {
+          throw new Error(`YouTube API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        allItems = allItems.concat(data.items);
+        nextPageToken = data.nextPageToken || '';
+      } while (nextPageToken);
+
+      return allItems;
+    } catch (error) {
+      console.error('YouTube get playlist items error:', error);
+      throw new Error('Failed to get playlist items: ' + error.message);
+    }
+  }
+
+  async replacePlaylistVideos(playlistId, videoUris) {
+    try {
+      // Ensure token is loaded and refreshed if needed
+      await this.loadToken();
+      
+      const headers = {};
+      if (this.accessToken) {
+        headers['Authorization'] = `Bearer ${this.accessToken}`;
+      } else {
+        throw new Error('No YouTube access token found. Authentication required to replace playlist videos.');
+      }
+
+      // Get all existing playlist items and remove them
+      const existingItems = await this.getPlaylistItems(playlistId);
+      
+      // Remove all existing items
+      for (const item of existingItems) {
+        const response = await fetch(`${this.baseURL}/playlistItems?id=${item.id}`, {
+          method: 'DELETE',
+          headers: headers
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.warn(`Failed to remove existing video ${item.snippet.resourceId?.videoId}: ${errorText}`);
+        }
+      }
+
+      // Add new videos in the specified order
+      await this.addVideosToPlaylist(playlistId, videoUris);
+      
+      return true;
+    } catch (error) {
+      console.error('YouTube replace videos error:', error);
+      throw new Error('Failed to replace videos in playlist: ' + error.message);
+    }
+  }
+
   createPlaylistUrl(videoIds) {
     if (!videoIds || videoIds.length === 0) {
       return null;
