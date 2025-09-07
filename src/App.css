@@ -427,13 +427,22 @@
   flex-direction: column;
   gap: 8px;
   margin-top: 10px;
-  max-height: 300px;
+  max-height: 150px;
   overflow-y: auto;
   border: 1px solid #ddd;
   border-radius: 4px;
   padding: 10px;
   background: #f8f9fa;
   text-align: left;
+  transition: max-height 0.3s ease;
+}
+
+.trello-lists.collapsed {
+  max-height: 200px; /* Allow for more space when showing selected items */
+}
+
+.trello-lists.expanded {
+  max-height: 150px;
 }
 
 .list-checkbox {
@@ -487,6 +496,33 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
+}
+
+.columns-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.expand-collapse-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.expand-collapse-button:hover {
+  background: #0056b3;
+}
+
+.expand-collapse-button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
 }
 
 .clear-songs-button {

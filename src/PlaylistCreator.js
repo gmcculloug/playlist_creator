@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import SpotifyAPI from './SpotifyAPI';
 import YouTubeAPI from './YouTubeAPI';
 import TrelloAPI from './TrelloAPI';
@@ -21,6 +21,8 @@ const PlaylistCreator = ({ accessToken, platform }) => {
   const [boardLists, setBoardLists] = useState([]);
   const [selectedLists, setSelectedLists] = useState([]);
   const [songsByColumn, setSongsByColumn] = useState({});
+  const [columnsExpanded, setColumnsExpanded] = useState(true);
+  const columnsRef = useRef(null);
 
   const fuzzyMatcher = new FuzzyMatcher();
 
@@ -118,6 +120,29 @@ const PlaylistCreator = ({ accessToken, platform }) => {
     }
   }, [songList]);
 
+  // Handle clicks outside the columns area to auto-collapse
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (columnsRef.current && !columnsRef.current.contains(event.target) && selectedLists.length > 0) {
+        setColumnsExpanded(false);
+      }
+    };
+
+    const handleFocusOutside = (event) => {
+      if (columnsRef.current && !columnsRef.current.contains(event.target) && selectedLists.length > 0) {
+        setColumnsExpanded(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('focusin', handleFocusOutside);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('focusin', handleFocusOutside);
+    };
+  }, [selectedLists.length]);
+
   // Fetch user's playlists on component mount
   useEffect(() => {
     const fetchUserPlaylists = async () => {
@@ -196,7 +221,14 @@ const PlaylistCreator = ({ accessToken, platform }) => {
     
     if (isCurrentlySelected) {
       // Remove the list and its songs
-      setSelectedLists(prev => prev.filter(id => id !== listId));
+      setSelectedLists(prev => {
+        const newList = prev.filter(id => id !== listId);
+        // Auto-expand when last item is deselected
+        if (newList.length === 0) {
+          setColumnsExpanded(true);
+        }
+        return newList;
+      });
       setSongsByColumn(prev => {
         const updated = { ...prev };
         delete updated[listId];
@@ -649,21 +681,60 @@ const PlaylistCreator = ({ accessToken, platform }) => {
           </div>
 
           {selectedBoard && boardLists.length > 0 && (
-            <div className="form-group">
-              <label>Select Columns:</label>
-              <div className="trello-lists">
-                {boardLists.map((list) => (
-                  <div key={list.id} className="list-checkbox">
-                    <input
-                      type="checkbox"
-                      id={`list-${list.id}`}
-                      checked={selectedLists.includes(list.id)}
-                      onChange={() => handleListToggle(list.id)}
-                      disabled={isLoading}
-                    />
-                    <label htmlFor={`list-${list.id}`}>{list.name}</label>
-                  </div>
-                ))}
+            <div 
+              className="form-group" 
+              ref={columnsRef}
+              onClick={() => {
+                if (!columnsExpanded && selectedLists.length > 0) {
+                  setColumnsExpanded(true);
+                }
+              }}
+            >
+              <div className="columns-header">
+                <label>Select Columns:</label>
+                {selectedLists.length > 0 && (
+                  <button 
+                    type="button"
+                    className="expand-collapse-button"
+                    onClick={() => setColumnsExpanded(!columnsExpanded)}
+                    disabled={isLoading}
+                  >
+                    {columnsExpanded ? 'Collapse' : 'Expand'}
+                  </button>
+                )}
+              </div>
+              <div className={`trello-lists ${columnsExpanded ? 'expanded' : 'collapsed'}`}>
+                {columnsExpanded ? (
+                  // Show all lists when expanded
+                  boardLists.map((list) => (
+                    <div key={list.id} className="list-checkbox">
+                      <input
+                        type="checkbox"
+                        id={`list-${list.id}`}
+                        checked={selectedLists.includes(list.id)}
+                        onChange={() => handleListToggle(list.id)}
+                        disabled={isLoading}
+                      />
+                      <label htmlFor={`list-${list.id}`}>{list.name}</label>
+                    </div>
+                  ))
+                ) : (
+                  // Show only selected lists when collapsed
+                  boardLists
+                    .filter(list => selectedLists.includes(list.id))
+                    .map((list) => (
+                      <div key={list.id} className="list-checkbox">
+                        <input
+                          type="checkbox"
+                          id={`list-${list.id}`}
+                          checked={true}
+                          onChange={() => handleListToggle(list.id)}
+                          disabled={isLoading}
+                        />
+                        <label htmlFor={`list-${list.id}`}>{list.name}</label>
+                      </div>
+                    ))
+                )}
               </div>
             </div>
           )}
@@ -672,7 +743,14 @@ const PlaylistCreator = ({ accessToken, platform }) => {
 
       <div className="form-group">
         <div className="songs-header">
-          <label htmlFor="songList">Songs (one per line):</label>
+          <label htmlFor="songList">
+            Songs (one per line):
+            {songList.trim() && (
+              <span style={{fontWeight: 'normal', color: '#666', marginLeft: '8px'}}>
+                ({songList.split('\n').filter(line => line.trim()).length} lines)
+              </span>
+            )}
+          </label>
           {songList.trim() && (
             <button 
               type="button"
