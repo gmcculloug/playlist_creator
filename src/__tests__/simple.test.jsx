@@ -1,3 +1,5 @@
+import { vi } from 'vitest';
+
 describe('Simple Test Suite', () => {
   test('should pass a basic test', () => {
     expect(1 + 1).toBe(2);
@@ -9,7 +11,7 @@ describe('Simple Test Suite', () => {
   });
 
   test('should work with mocks', () => {
-    const mockFn = jest.fn();
+    const mockFn = vi.fn();
     mockFn('test');
     expect(mockFn).toHaveBeenCalledWith('test');
   });

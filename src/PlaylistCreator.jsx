@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import SpotifyAPI from './SpotifyAPI';
-import YouTubeAPI from './YouTubeAPI';
-import TrelloAPI from './TrelloAPI';
-import FuzzyMatcher from './FuzzyMatcher';
+import SpotifyAPI from './SpotifyAPI.jsx';
+import YouTubeAPI from './YouTubeAPI.jsx';
+import TrelloAPI from './TrelloAPI.jsx';
+import FuzzyMatcher from './FuzzyMatcher.jsx';
 
 const PlaylistCreator = ({ accessToken, platform }) => {
   const [playlistName, setPlaylistName] = useState('');
@@ -263,6 +263,7 @@ const PlaylistCreator = ({ accessToken, platform }) => {
     if (platform === 'trello') {
       setSelectedLists([]);
       setSongsByColumn({});
+      setColumnsExpanded(true);
     }
   };
 

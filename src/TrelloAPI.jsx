@@ -4,7 +4,7 @@ class TrelloAPI {
   }
 
   getConfiguredBoardIds() {
-    const boardIdsEnv = process.env.REACT_APP_TRELLO_BOARD_IDS;
+    const boardIdsEnv = import.meta.env.VITE_TRELLO_BOARD_IDS;
     if (!boardIdsEnv) return [];
     
     return boardIdsEnv.split(',').map(boardId => boardId.trim()).filter(boardId => boardId.length > 0);

@@ -4,8 +4,8 @@ const SpotifyAuth = ({ onAuthenticated }) => {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [hasValidToken, setHasValidToken] = useState(false);
   
-  const CLIENT_ID = process.env.REACT_APP_SPOTIFY_CLIENT_ID || 'YOUR_SPOTIFY_CLIENT_ID';
-  const REDIRECT_URI = process.env.REACT_APP_REDIRECT_URI || `${window.location.origin}/spotify`;
+  const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID || 'YOUR_SPOTIFY_CLIENT_ID';
+  const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI || `${window.location.origin}/spotify`;
   const SCOPES = [
     'playlist-read-private',
     'playlist-read-collaborative',
@@ -87,7 +87,7 @@ const SpotifyAuth = ({ onAuthenticated }) => {
           if (response.status === 404) {
             throw new Error('Backend server not responding. Make sure to run "npm run server" in a separate terminal.');
           } else if (response.status === 400) {
-            throw new Error('Invalid Spotify credentials. Check your .env file has correct REACT_APP_SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET.');
+            throw new Error('Invalid Spotify credentials. Check your .env file has correct VITE_SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET.');
           } else {
             throw new Error(`Server error (${response.status}): ${errorData}`);
           }
@@ -116,7 +116,7 @@ const SpotifyAuth = ({ onAuthenticated }) => {
         
         // Show user-friendly error message
         const errorMessage = error.message || 'Failed to complete authentication';
-        alert(`Authentication failed: ${errorMessage}\n\nPlease ensure:\n1. The backend server is running (npm run server)\n2. REACT_APP_SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET are set in .env\n3. Redirect URI is configured in Spotify app settings`);
+        alert(`Authentication failed: ${errorMessage}\n\nPlease ensure:\n1. The backend server is running (npm run server)\n2. VITE_SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET are set in .env\n3. Redirect URI is configured in Spotify app settings`);
         
         // Reset URL on error to remove the code parameter
         window.history.replaceState({}, document.title, '/');
@@ -184,7 +184,7 @@ const SpotifyAuth = ({ onAuthenticated }) => {
         <ol style={{ textAlign: 'left', maxWidth: '500px', margin: '0 auto' }}>
           <li>Create a Spotify app at <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener noreferrer">developer.spotify.com</a></li>
           <li>Add <code>{REDIRECT_URI}</code> as a redirect URI in your app settings</li>
-          <li>Set your Client ID in the environment variable <code>REACT_APP_SPOTIFY_CLIENT_ID</code></li>
+          <li>Set your Client ID in the environment variable <code>VITE_SPOTIFY_CLIENT_ID</code></li>
           <li>Client Secret is stored securely as <code>SPOTIFY_CLIENT_SECRET</code> (not exposed to browser)</li>
         </ol>
       </div>

@@ -43,7 +43,7 @@ class YouTubeAPI {
         await this.refreshToken();
       } else {
         console.warn('Could not get YouTube token from backend');
-        this.accessToken = process.env.REACT_APP_YOUTUBE_ACCESS_TOKEN;
+        this.accessToken = import.meta.env.VITE_YOUTUBE_ACCESS_TOKEN;
       }
     } catch (error) {
       console.warn('Error loading YouTube token from backend:', error);
@@ -113,7 +113,7 @@ class YouTubeAPI {
       if (this.accessToken) {
         headers['Authorization'] = `Bearer ${this.accessToken}`;
       } else {
-        throw new Error('No YouTube access token found. Please set REACT_APP_YOUTUBE_ACCESS_TOKEN or authenticate using OAuth2');
+        throw new Error('No YouTube access token found. Please set VITE_YOUTUBE_ACCESS_TOKEN or authenticate using OAuth2');
       }
 
       const response = await fetch(`${this.baseURL}/search?${searchParams}`, { headers });
@@ -160,7 +160,7 @@ class YouTubeAPI {
         } else if (this.apiKey) {
           searchParams.append('key', this.apiKey);
         } else {
-          throw new Error('No YouTube access token found. Please set REACT_APP_YOUTUBE_ACCESS_TOKEN or authenticate using OAuth2');
+          throw new Error('No YouTube access token found. Please set VITE_YOUTUBE_ACCESS_TOKEN or authenticate using OAuth2');
         }
 
         const response = await fetch(`${this.baseURL}/playlistItems?${searchParams}`, { headers });
@@ -206,7 +206,7 @@ class YouTubeAPI {
       if (this.accessToken) {
         headers['Authorization'] = `Bearer ${this.accessToken}`;
       } else {
-        throw new Error('No YouTube access token found. Please set REACT_APP_YOUTUBE_ACCESS_TOKEN or authenticate using OAuth2');
+        throw new Error('No YouTube access token found. Please set VITE_YOUTUBE_ACCESS_TOKEN or authenticate using OAuth2');
       }
 
       console.log('YouTube API request:', `${this.baseURL}/search?${searchParams}`);

@@ -1,39 +1,46 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi } from 'vitest';
 import App from '../App';
 
 // Mock the child components to avoid complex dependencies
-jest.mock('../SpotifyAuth', () => {
-  return function MockSpotifyAuth({ onAuthenticated }) {
-    return (
-      <div data-testid="spotify-auth">
-        <button onClick={() => onAuthenticated('mock_spotify_token')}>
-          Authenticate Spotify
-        </button>
-      </div>
-    );
+vi.mock('../SpotifyAuth', () => {
+  return {
+    default: function MockSpotifyAuth({ onAuthenticated }) {
+      return (
+        <div data-testid="spotify-auth">
+          <button onClick={() => onAuthenticated('mock_spotify_token')}>
+            Authenticate Spotify
+          </button>
+        </div>
+      );
+    }
   };
 });
 
-jest.mock('../YouTubeAuth', () => {
-  return function MockYouTubeAuth({ onAuthenticated }) {
-    return (
-      <div data-testid="youtube-auth">
-        <button onClick={() => onAuthenticated('youtube-authenticated')}>
-          Authenticate YouTube
-        </button>
-      </div>
-    );
+vi.mock('../YouTubeAuth', () => {
+  return {
+    default: function MockYouTubeAuth({ onAuthenticated }) {
+      return (
+        <div data-testid="youtube-auth">
+          <button onClick={() => onAuthenticated('youtube-authenticated')}>
+            Authenticate YouTube
+          </button>
+        </div>
+      );
+    }
   };
 });
 
-jest.mock('../PlaylistCreator', () => {
-  return function MockPlaylistCreator({ accessToken, platform }) {
-    return (
-      <div data-testid="playlist-creator">
-        Platform: {platform}, Token: {accessToken ? 'present' : 'missing'}
-      </div>
-    );
+vi.mock('../PlaylistCreator', () => {
+  return {
+    default: function MockPlaylistCreator({ accessToken, platform }) {
+      return (
+        <div data-testid="playlist-creator">
+          Platform: {platform}, Token: {accessToken ? 'present' : 'missing'}
+        </div>
+      );
+    }
   };
 });
 

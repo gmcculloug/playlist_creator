@@ -82,8 +82,8 @@ You should see version numbers for both commands (e.g., `v18.17.0` for Node.js a
 2. Edit `.env` and add your Spotify credentials:
    ```
    SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
-   REACT_APP_SPOTIFY_CLIENT_ID=your_spotify_client_id_here
-   REACT_APP_REDIRECT_URI=http://localhost:3000/spotify
+   VITE_SPOTIFY_CLIENT_ID=your_spotify_client_id_here
+   VITE_REDIRECT_URI=http://localhost:3000/spotify
    ```
 
 ### 3. Trello Setup (Optional)
@@ -92,7 +92,7 @@ If you want to use the Trello integration to import songs from Trello boards:
 
 1. Edit `.env` and add your Trello board IDs:
    ```
-   REACT_APP_TRELLO_BOARD_IDS=board_id_1,board_id_2,board_id_3
+   VITE_TRELLO_BOARD_IDS=board_id_1,board_id_2,board_id_3
    ```
 
 2. To find your Trello board IDs:
@@ -247,7 +247,7 @@ The app will find these songs in your core playlists even if they're stored as:
 
 ### Authentication redirects back to platform selection
 - Ensure the backend server is running on port 3001 (`npm run server`)
-- Check that your `.env` file contains `REACT_APP_SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`
+- Check that your `.env` file contains `VITE_SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`
 - Verify your Spotify app's redirect URI matches `http://localhost:3000/spotify`
 - Check the browser console for authentication errors
 - Clear browser localStorage and try authenticating again
