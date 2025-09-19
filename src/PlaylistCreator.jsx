@@ -242,10 +242,15 @@ const PlaylistCreator = ({ accessToken, platform }) => {
         const trelloAPI = new TrelloAPI();
         const songs = await trelloAPI.getCardsFromLists([listId]);
         const songNames = songs.map(song => song.name);
-        
+
+        // Get the column name and format it with __
+        const selectedList = boardLists.find(list => list.id === listId);
+        const columnHeader = selectedList ? `__${selectedList.name}__` : `__Column__`;
+        const songsWithHeader = [columnHeader, ...songNames, ''];
+
         setSongsByColumn(prev => ({
           ...prev,
-          [listId]: songNames
+          [listId]: songsWithHeader
         }));
       } catch (error) {
         console.error('Error fetching songs for list:', error);
@@ -264,6 +269,19 @@ const PlaylistCreator = ({ accessToken, platform }) => {
       setSelectedLists([]);
       setSongsByColumn({});
       setColumnsExpanded(true);
+    }
+  };
+
+  // Copy songs list to clipboard
+  const handleCopySongs = async () => {
+    try {
+      await navigator.clipboard.writeText(songList);
+      setStatus('Songs copied to clipboard!');
+      // Clear status after 2 seconds
+      setTimeout(() => setStatus(''), 2000);
+    } catch (error) {
+      console.error('Failed to copy songs:', error);
+      setStatus('Failed to copy songs to clipboard');
     }
   };
 
@@ -288,7 +306,7 @@ const PlaylistCreator = ({ accessToken, platform }) => {
         .split('\n')
         .map(song => song.trim())
         .map(song => song.startsWith('  - ') ? song.substring(4).trim() : song)
-        .filter(song => song.length > 0);
+        .filter(song => song.length > 0 && !(song.startsWith('__') && song.endsWith('__')));
 
       let allCoreSongs = [];
 
@@ -708,15 +726,21 @@ const PlaylistCreator = ({ accessToken, platform }) => {
                 {columnsExpanded ? (
                   // Show all lists when expanded
                   boardLists.map((list) => (
-                    <div key={list.id} className="list-checkbox">
+                    <div
+                      key={list.id}
+                      className="list-checkbox"
+                      onClick={() => handleListToggle(list.id)}
+                      style={{ cursor: isLoading ? 'not-allowed' : 'pointer' }}
+                    >
                       <input
                         type="checkbox"
                         id={`list-${list.id}`}
                         checked={selectedLists.includes(list.id)}
-                        onChange={() => handleListToggle(list.id)}
+                        onChange={() => {}} // Handled by div click
                         disabled={isLoading}
+                        style={{ pointerEvents: 'none' }}
                       />
-                      <label htmlFor={`list-${list.id}`}>{list.name}</label>
+                      <label htmlFor={`list-${list.id}`} style={{ pointerEvents: 'none' }}>{list.name}</label>
                     </div>
                   ))
                 ) : (
@@ -724,15 +748,21 @@ const PlaylistCreator = ({ accessToken, platform }) => {
                   boardLists
                     .filter(list => selectedLists.includes(list.id))
                     .map((list) => (
-                      <div key={list.id} className="list-checkbox">
+                      <div
+                        key={list.id}
+                        className="list-checkbox"
+                        onClick={() => handleListToggle(list.id)}
+                        style={{ cursor: isLoading ? 'not-allowed' : 'pointer' }}
+                      >
                         <input
                           type="checkbox"
                           id={`list-${list.id}`}
                           checked={true}
-                          onChange={() => handleListToggle(list.id)}
+                          onChange={() => {}} // Handled by div click
                           disabled={isLoading}
+                          style={{ pointerEvents: 'none' }}
                         />
-                        <label htmlFor={`list-${list.id}`}>{list.name}</label>
+                        <label htmlFor={`list-${list.id}`} style={{ pointerEvents: 'none' }}>{list.name}</label>
                       </div>
                     ))
                 )}
@@ -748,19 +778,32 @@ const PlaylistCreator = ({ accessToken, platform }) => {
             Songs (one per line):
             {songList.trim() && (
               <span style={{fontWeight: 'normal', color: '#666', marginLeft: '8px'}}>
-                ({songList.split('\n').filter(line => line.trim()).length} lines)
+                ({songList.split('\n').filter(line => {
+                  const trimmed = line.trim();
+                  return trimmed && !(trimmed.startsWith('__') && trimmed.endsWith('__'));
+                }).length} lines)
               </span>
             )}
           </label>
           {songList.trim() && (
-            <button 
-              type="button"
-              className="clear-songs-button"
-              onClick={handleClearSongs}
-              disabled={isLoading}
-            >
-              Clear
-            </button>
+            <div style={{display: 'flex', gap: '8px'}}>
+              <button
+                type="button"
+                className="copy-songs-button"
+                onClick={handleCopySongs}
+                disabled={isLoading}
+              >
+                Copy
+              </button>
+              <button
+                type="button"
+                className="clear-songs-button"
+                onClick={handleClearSongs}
+                disabled={isLoading}
+              >
+                Clear
+              </button>
+            </div>
           )}
         </div>
         <textarea
