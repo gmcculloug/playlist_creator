@@ -38,15 +38,49 @@ class FuzzyMatcher {
     const cleanedInputSong = this.cleanSongName(inputSong);
     const fuse = new Fuse(songLibrary, this.options);
     const results = fuse.search(cleanedInputSong);
-    
+
     if (results.length === 0) {
+      // If no matches and the search string includes "- ", split and search with first part
+      if (inputSong.includes('- ')) {
+        const firstPart = inputSong.split('- ')[0].trim();
+        const cleanedFirstPart = this.cleanSongName(firstPart);
+        const fallbackResults = fuse.search(cleanedFirstPart);
+
+        if (fallbackResults.length > 0) {
+          const validFallbackResults = fallbackResults.filter(result => result.score <= this.options.threshold);
+          if (validFallbackResults.length > 0) {
+            const bestMatch = this.selectBestMatch(cleanedFirstPart, validFallbackResults);
+            return {
+              ...bestMatch.item,
+              score: 1 - bestMatch.score
+            };
+          }
+        }
+      }
       return null;
     }
 
     // Filter results that meet the threshold
     const validResults = results.filter(result => result.score <= this.options.threshold);
-    
+
     if (validResults.length === 0) {
+      // If no valid results and the search string includes "- ", split and search with first part
+      if (inputSong.includes('- ')) {
+        const firstPart = inputSong.split('- ')[0].trim();
+        const cleanedFirstPart = this.cleanSongName(firstPart);
+        const fallbackResults = fuse.search(cleanedFirstPart);
+
+        if (fallbackResults.length > 0) {
+          const validFallbackResults = fallbackResults.filter(result => result.score <= this.options.threshold);
+          if (validFallbackResults.length > 0) {
+            const bestMatch = this.selectBestMatch(cleanedFirstPart, validFallbackResults);
+            return {
+              ...bestMatch.item,
+              score: 1 - bestMatch.score
+            };
+          }
+        }
+      }
       return null;
     }
 

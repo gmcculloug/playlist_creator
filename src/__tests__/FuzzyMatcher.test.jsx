@@ -74,6 +74,42 @@ describe('FuzzyMatcher', () => {
       expect(result.score).toBeGreaterThan(0);
       expect(result.score).toBeLessThanOrEqual(1);
     });
+
+    test('should fallback to first part when no matches and string contains "- "', () => {
+      const result = fuzzyMatcher.findBestMatch('Perfect - Live Version', mockSongLibrary);
+      expect(result).toBeTruthy();
+      expect(result.name).toBe('Perfect');
+      expect(result.id).toBe('2');
+    });
+
+    test('should fallback to first part when no valid matches and string contains "- "', () => {
+      // Set a very strict threshold to make initial search fail
+      fuzzyMatcher.setThreshold(0.1);
+      const result = fuzzyMatcher.findBestMatch('Shape - Remix Version', mockSongLibrary);
+      expect(result).toBeTruthy();
+      expect(result.name).toBe('Shape of You');
+      expect(result.id).toBe('1');
+    });
+
+    test('should return null when fallback also finds no matches', () => {
+      const result = fuzzyMatcher.findBestMatch('Nonexistent - Song Title', mockSongLibrary);
+      expect(result).toBeNull();
+    });
+
+    test('should work normally when string contains "- " but finds matches', () => {
+      // Add a song that actually contains "- " to test normal behavior
+      const libraryWithDash = [...mockSongLibrary, {
+        id: '4',
+        name: 'Test - Song',
+        artists: ['Test Artist'],
+        uri: 'spotify:track:4'
+      }];
+
+      const result = fuzzyMatcher.findBestMatch('Test - Song', libraryWithDash);
+      expect(result).toBeTruthy();
+      expect(result.name).toBe('Test - Song');
+      expect(result.id).toBe('4');
+    });
   });
 
   describe('configuration', () => {
