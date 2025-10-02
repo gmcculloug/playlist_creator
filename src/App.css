@@ -525,6 +525,32 @@
   cursor: not-allowed;
 }
 
+.copy-songs-button {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copy-songs-button:hover:not(:disabled) {
+  background: #218838;
+}
+
+.copy-songs-button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.copy-songs-button.copying {
+  background: #20c997;
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(32, 201, 151, 0.3);
+}
+
 .clear-songs-button {
   background: #dc3545;
   color: white;

@@ -14,6 +14,7 @@ const PlaylistCreator = ({ accessToken, platform }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [updateMode, setUpdateMode] = useState('append'); // 'append' or 'reset'
   const [isExistingPlaylist, setIsExistingPlaylist] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
   
   // Trello-specific state
   const [selectedBoard, setSelectedBoard] = useState('');
@@ -274,14 +275,18 @@ const PlaylistCreator = ({ accessToken, platform }) => {
 
   // Copy songs list to clipboard
   const handleCopySongs = async () => {
+    setIsCopying(true);
     try {
       await navigator.clipboard.writeText(songList);
       setStatus('Songs copied to clipboard!');
       // Clear status after 2 seconds
       setTimeout(() => setStatus(''), 2000);
+      // Reset copying state after animation
+      setTimeout(() => setIsCopying(false), 1500);
     } catch (error) {
       console.error('Failed to copy songs:', error);
       setStatus('Failed to copy songs to clipboard');
+      setIsCopying(false);
     }
   };
 
@@ -789,11 +794,11 @@ const PlaylistCreator = ({ accessToken, platform }) => {
             <div style={{display: 'flex', gap: '8px'}}>
               <button
                 type="button"
-                className="copy-songs-button"
+                className={`copy-songs-button ${isCopying ? 'copying' : ''}`}
                 onClick={handleCopySongs}
-                disabled={isLoading}
+                disabled={isLoading || isCopying}
               >
-                Copy
+                {isCopying ? 'Copied!' : 'Copy'}
               </button>
               <button
                 type="button"
